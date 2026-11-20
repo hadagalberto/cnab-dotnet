@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Cnab/Cnab.csproj" />
+    <Project Path="src/Cnab.Cli/Cnab.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Cnab.Tests/Cnab.Tests.csproj" />

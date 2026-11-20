@@ -119,10 +119,59 @@ public class MotorDeRegistros
     }
 }
 
+/// <summary>
+/// Benchmark do requisito do SPEC: analisar 1.000.000 de linhas CNAB 240.
+/// A preparação usa uma única linha válida repetida, para medir o parse e não
+/// a geração dos dados de entrada.
+/// </summary>
+[MemoryDiagnoser]
+public class ParseUmMilhao
+{
+    private const int Quantidade = 1_000_000;
+    private string[] _linhas = [];
+
+    /// <summary>Prepara o milhão de linhas de 240 posições.</summary>
+    [GlobalSetup]
+    public void Preparar()
+    {
+        var registro = new RegistroBenchmark
+        {
+            Banco = 33,
+            Lote = 1,
+            TipoRegistro = 3,
+            NomeEmpresa = "EMPRESA MODELO LTDA",
+            DataGeracao = new DateOnly(2026, 11, 20),
+            HoraGeracao = 101530,
+            SequencialArquivo = 1,
+            Densidade = 1600,
+            ValorTitulo = 1500.50m,
+            VencimentoCurto = new DateOnly(2026, 12, 20),
+        };
+        var linha = RegistroCnab<RegistroBenchmark>.Escrever(registro);
+        _linhas = new string[Quantidade];
+        Array.Fill(_linhas, linha);
+    }
+
+    /// <summary>Lê as 1.000.000 de linhas e devolve uma soma de verificação.</summary>
+    /// <returns>Soma dos códigos de banco lidos.</returns>
+    [Benchmark]
+    public long LerUmMilhaoDeLinhas()
+    {
+        long soma = 0;
+        for (var i = 0; i < _linhas.Length; i++)
+        {
+            soma += RegistroCnab<RegistroBenchmark>.Ler(_linhas[i], i + 1).Banco;
+        }
+
+        return soma;
+    }
+}
+
 /// <summary>Ponto de entrada do projeto de benchmarks.</summary>
 public static class Program
 {
     /// <summary>Executa o BenchmarkDotNet com os benchmarks do projeto.</summary>
     /// <param name="args">Argumentos de linha de comando repassados ao BenchmarkDotNet.</param>
-    public static void Main(string[] args) => BenchmarkRunner.Run(typeof(MotorDeRegistros), args: args);
+    public static void Main(string[] args) =>
+        BenchmarkRunner.Run([typeof(MotorDeRegistros), typeof(ParseUmMilhao)], args: args);
 }

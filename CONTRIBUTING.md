@@ -36,7 +36,16 @@ uma contribuição.
 
 5. Novos layouts de banco exigem vetores de teste do manual oficial (golden
    files) e atualização de `docs/layouts.md`.
-6. PRs são revisados com foco em: fonte citada, qualidade dos testes e
+6. Mudanças na CLI devem vir acompanhadas de testes em `CliTests` cobrindo
+   tanto o caminho válido quanto o inválido (códigos de saída 0, 1 e 2). A
+   CLI é uma ferramenta local: não publicar pacotes em NuGet.
+7. Novos campos/registros devem entrar também nos geradores FsCheck de
+   `ArbitrariosLayouts`, para que a propriedade de comprimento exato, o
+   round-trip e os totais de trailer continuem cobrindo **todos** os layouts.
+8. O teste de 1 milhão de linhas (`DesempenhoParseUmMilhaoTests`) tem limite
+   generoso de 60 s. Se ele falhar, investigue a regressão de desempenho no
+   motor; nunca aumente o limite para esconder o problema.
+9. PRs são revisados com foco em: fonte citada, qualidade dos testes e
    aderência às convenções.
 
 ## Commit

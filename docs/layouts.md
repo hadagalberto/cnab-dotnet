@@ -3,8 +3,9 @@
 O SPEC é categórico: **nenhuma posição de layout ou regra de dígito pode ser
 inventada** — todo comando de código deste repositório cita o manual oficial
 que o justifica. Este arquivo registra o nome, a versão e a URL de cada
-documento consultado, e o que exatamente foi extraído dele. Marcos futuros
-(CNAB 240/400 por banco, remessa/retorno, CLI) devem estender este registro.
+documento consultado, e o que exatamente foi extraído dele. Cada marco estende
+este registro; o marco 4 (CLI, propriedades e benchmarks) não introduziu nova
+posição de layout, apenas reutilizou as fontes abaixo.
 
 ## Convenções comuns (FEBRABAN)
 
@@ -289,3 +290,77 @@ round-trip `parse(write(x)) == x` dos retornos. LINHA de retorno é preservada
 integralmente nos modelos (`LinhaOriginal`, `LinhaHeader`, `LinhaTrailer`) —
 isso cobre também bancos cujos cabeçalhos divergem do registro FEBRABAN
 genérico (Itaú/Inter), sem reescrever campos não publicados.
+
+## Marco 4 — ferramenta `cnab`, propriedades e desempenho
+
+Nenhuma posição nova foi acrescentada neste marco: a ferramenta de linha de
+comando, os testes de propriedade e os benchmarks leem/escrevem **exatamente**
+os registros declarativos já citados nas seções anteriores (F1/F3, I1/I2,
+B1'/B3/B4, S3/S4, IN1/IN2, T1/T2). Onde a CLI precisa interpretar um campo
+para diagnóstico, ela usa os mesmos atributos `CampoCnab` do motor —
+`Cnab.Arquivo.MetadadosRegistro` —, sem tabelas paralelas.
+
+### Cobertura efetiva por banco/layout
+
+| Banco | Código | CNAB 240 cobrança | CNAB 240 pagamento | CNAB 400 cobrança |
+| --- | --- | --- | --- | --- |
+| Banco do Brasil | 001 | remessa + retorno (B1/B2/VE1) | remessa (B2) | — |
+| Santander | 033 | remessa (registros próprios, S1) | remessa (S2) | — |
+| Caixa | 104 | remessa + retorno (C1/C2) | remessa (C2) | — |
+| Bradesco | 237 | remessa + retorno (B3/B4) | remessa (B3) | remessa + retorno (B1') |
+| Itaú | 341 | remessa + retorno (I1) | remessa (I1) | remessa + retorno (I2) |
+| Sicredi | 748 | remessa + retorno (S3) | remessa (S3) | remessa + retorno (S4) |
+| Sicoob | 756 | remessa (CO1 + espelho do XLS) | remessa (CO1) | — |
+| Inter | 077 | — (o manual IN2 cobre só pagamentos) | remessa (IN2) | remessa + retorno (IN1) |
+| BTG Pactual | 208 | remessa + retorno (T1/T2) | — | — |
+
+### Regras de leitura usadas pela CLI (todas das fontes acima)
+
+- **Detecção do layout**: comprimento do registro — 240 (F1, "Tamanho do
+  Registro") ou 400 (manuais I2/B1'/S4/IN1).
+- **Detecção do banco**: CNAB 240, posições 1-3 (G001, F1); CNAB 400, posições
+  77-79 dos headers implementados (I2/B1'/S4/IN1) — mesma regra já usada por
+  `LeitorRetorno400`.
+- **Tipo de registro**: CNAB 240, posição 8 (G003, F1); CNAB 400, posição 1
+  (I2/B1'/S4/IN1). O segmento CNAB 240 vem da posição 14 (G039, F1).
+- **Sentido do arquivo**: CNAB 240, posição 143 (G015, F1); CNAB 400, posição
+  2 ("1" remessa, "2" retorno, I2/B1'/S4/IN1). Essa distinção é necessária
+  porque o detalhe CNAB 400 usa a posição 2 para o tipo de inscrição.
+- **Validação de totais**: trailer de arquivo CNAB 240 — quantidade de lotes
+  (G049, 18-23) e registros (G056, 24-29), F1; trailer CNAB 400 Itaú/
+  Bradesco/Sicredi — sequencial final (395-400). O trailer do Inter informa
+  quantidade de boletos (002-007), não total de registros (IN1), por isso a
+  CLI não compara esse campo com a contagem de linhas.
+- **Retorno 240 sintético dos testes**: C044 "06" = liquidação (tabela
+  FEBRABAN C044 em F1), C047 preenchido com zeros (campo não utilizado) e
+  A001 "0000" (sem ocorrência do pagador). Nenhum desses valores é inventado.
+- **Valor pago nos retornos 400 sintéticos**: Inter 160-172 (IN1); Itaú,
+  Bradesco e Sicredi 254-266 (I2/B1'/S4). Os golden files preservam esses
+  números e as propriedades FsCheck apenas trocam o valor por outro vetor
+  numérico válido de 13 posições com 2 decimais implícitas.
+
+### Comandos
+
+- `cnab validate <arquivo>` — comprimento, tipo de registro, leitura de todos
+  os campos compilados e consistência dos trailers. Erros trazem linha, coluna
+  e nome do campo (requisito do SPEC).
+- `cnab parse <retorno> [--json]` — usa `LeitorRetorno240`/`LeitorRetorno400` e
+  projeta ocorrência, motivos e valores em JSON estável (camelCase); sem
+  `--json`, imprime resumo legível.
+- `cnab inspect <arquivo> [--bank <código>]` — para cada tipo de registro
+  presente, imprime uma tabela com posição 1-based, tipo (numérico,
+  alfanumérico, decimal com casas, data), nome e valor, vinda dos atributos
+  declarativos.
+- `cnab generate <titulos.json> --bank <código> --layout <240|400>` — converte
+  um JSON de domínio nos modelos `Remessa240`/`Remessa400` e usa os geradores
+  já validados pelos golden files; saída Latin-1, CRLF por padrão.
+
+### Propriedades e desempenho
+
+`PropriedadesTodosLayoutsTests` cobre os nove bancos CNAB 240 e os quatro
+CNAB 400 com geradores FsCheck: toda linha escrita tem o comprimento exato,
+o retorno parseado é reescrito byte a byte e os trailers refletem contagens e
+somatórias dos modelos. `DesempenhoParseUmMilhaoTests` analisa 1.000.000 de
+linhas de 240 posições com limite generoso de 60 s, e o projeto
+`Cnab.Benchmarks` inclui o benchmark equivalente (`ParseUmMilhao`).
+

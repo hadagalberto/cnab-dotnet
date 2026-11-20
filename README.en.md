@@ -1,76 +1,170 @@
 # Cnab.NET
 
-**Cnab.NET** is a .NET library (and, in upcoming milestones, a `cnab` CLI) to
-generate CNAB remessa files and parse retorno files (CNAB 240 and CNAB 400)
-for Brazilian boleto collection and payments, for the main banks:
+**Cnab.NET** is a .NET library and the `cnab` tool to generate CNAB remessa
+files and parse retorno files (CNAB 240 and CNAB 400) for Brazilian boleto
+collection and supplier payments:
 
-| Bank | Code |
-| --- | --- |
-| Banco do Brasil | 001 |
-| Santander | 033 |
-| Caixa Econômica Federal | 104 |
-| Bradesco | 237 |
-| Itaú | 341 |
-| Sicredi | 748 |
-| Sicoob | 756 |
-| Banco Inter | 077 |
-| BTG Pactual | 208 |
+| Bank | Code | CNAB 240 | CNAB 400 |
+| --- | --- | --- | --- |
+| Banco do Brasil | 001 | yes | — |
+| Santander | 033 | yes | — |
+| Caixa Econômica Federal | 104 | yes | — |
+| Bradesco | 237 | yes | yes |
+| Itaú | 341 | yes | yes |
+| Sicredi | 748 | yes | yes |
+| Sicoob | 756 | yes | — |
+| Banco Inter | 077 | payments | yes |
+| BTG Pactual | 208 | yes | — |
 
 This is not a toy project: no stubs, no `NotImplementedException`, no skipped
-tests. Every layout position and every check-digit algorithm comes from an
-**official manual cited in code and in
-[docs/layouts.md](docs/layouts.md)** — nothing is invented.
+tests. Every layout position and algorithm comes from an **official manual
+cited in code and in [docs/layouts.md](docs/layouts.md)** — nothing is invented.
 
-## Current state (milestone 1)
+## Requirements and build
 
-- **Fixed-width record engine** — declarative fields by attribute (position,
-  length, numeric/alpha/decimal types, `DDMMAA`/`DDMMAAAA` dates, fillers),
-  **compiled** readers and writers (cached expression trees — zero per-record
-  reflection), record length validation (240/400) and precise errors with
-  **line, column and field name**.
-- **CNAB charset** — uppercasing, accent stripping and replacement of
-  unsupported characters, per the manuals (details in
-  [docs/layouts.md](docs/layouts.md)).
-- **Domain model** — cedente/beneficiário, bank account, título (nosso número,
-  due date, amount, interest, fine, discount, protest, pagador, sacador
-  avalista, instructions), pagamento (TED/DOC/Pix key/Pix QR/boleto/tributo),
-  batches and trailer totals computed automatically.
-- **Boleto** — fator de vencimento (including the **22/02/2025 reset rule**),
-  código de barras (44) and linha digitável (47) with per-bank check digits,
-  validated against official manual vectors and real API samples.
-- **Per-bank algorithms** — nosso número and agency/account check digits per
-  each bank's manual (BB, Bradesco, Itaú, Santander, Caixa, Inter, Sicredi and
-  Sicoob with solved vectors; BTG with its published campo livre and the
-  bank-assigned DV — see [docs/layouts.md](docs/layouts.md)).
-
-Upcoming milestones: per-bank CNAB 240/400 layouts, remessa generation,
-retorno parsing, payment segments (A/B/J/O) and the `cnab` CLI.
-
-## Requirements
-
-- .NET SDK **10** for development (CI validates **8** and **10**).
-- The library targets `net8.0` and `net10.0`. `netstandard2.0` was evaluated
-  and dropped: the API uses `DateOnly` and the required shim would hurt the
-  public surface (the SPEC allows skipping it in that case).
-
-## Build and tests
+- .NET SDK **10** for development; CI validates **.NET 8 and 10** on Ubuntu,
+  Windows and macOS.
+- The library and CLI target `net8.0` and `net10.0`. `netstandard2.0` was
+  evaluated and dropped because the public API uses `DateOnly` (the SPEC
+  allows dropping it to keep a better API surface).
 
 ```bash
-dotnet build Cnab.slnx -c Release   # warnings are errors
-dotnet test tests/Cnab.Tests       # xUnit + FsCheck + Verify
-dotnet format Cnab.slnx --verify-no-changes  # lint
+dotnet restore Cnab.slnx
+dotnet build Cnab.slnx -c Release                 # warnings are errors
+dotnet test tests/Cnab.Tests -c Release           # xUnit + FsCheck + Verify
+dotnet format Cnab.slnx --verify-no-changes       # lint
 ```
 
-The test suite includes:
+## Library: generate a CNAB 400 remessa
 
-- **Official vectors** — worked examples from the manuals (per-bank nosso
-  número check digits, per-bank barcode and digitable line, fator de
-  vencimento tables).
-- **Property tests (FsCheck)** — every written line has the exact layout
-  length; `parse(write(x)) == x`; the output charset always belongs to the
-  CNAB set; trailer totals always match.
-- **Snapshots (Verify)** — the sample file is frozen byte for byte (CRLF
-  included).
+Complete example (compiles with a reference to `Cnab`):
+
+```csharp
+using Cnab.Layouts.Cnab400;
+using Cnab.Modelo;
+
+var banco = Bancos.Bradesco;
+var conta = new ContaBancaria
+{
+    Banco = banco,
+    Agencia = "0057",
+    Conta = "12345",
+    DvConta = "7",
+};
+var cedente = new Cedente
+{
+    Nome = "EMPRESA TESTE LTDA",
+    Documento = new DocumentoFiscal(DocumentoFiscal.CnpjExemplo),
+    Conta = conta,
+};
+var titulo = new Titulo
+{
+    NossoNumero = "98712345",
+    NumeroDocumento = "NF000001",
+    Especie = EspecieDocumento.DuplicataMercantilIndicacao,
+    DataEmissao = new DateOnly(2026, 11, 20),
+    DataVencimento = new DateOnly(2026, 12, 20),
+    Valor = 1500.50m,
+    Carteira = "19",
+    Pagador = new Pagador
+    {
+        Nome = "PAGADOR TESTE LTDA",
+        Documento = new DocumentoFiscal(DocumentoFiscal.CpfExemplo),
+    },
+};
+var remessa = new Remessa400
+{
+    Banco = banco,
+    Cedente = cedente,
+    NumeroSequencialArquivo = 1,
+    DataGeracao = new DateOnly(2026, 11, 20),
+    CodigoBeneficiario = "00623",
+    Titulos = [titulo],
+};
+var conteudo = GeradorRemessa400.Gerar(remessa); // CRLF + Latin-1 by default
+File.WriteAllBytes("remessa.rem", System.Text.Encoding.Latin1.GetBytes(conteudo));
+```
+
+For CNAB 240, use `Remessa240`, `LoteCobranca` and `GeradorRemessa240.Gerar`.
+Trailer counts and totals are computed automatically.
+
+## Library: parse a retorno
+
+```csharp
+using Cnab.Layouts.Cnab240;
+using Cnab.Layouts.Cnab400;
+
+var retorno400 = LeitorRetorno400.Ler(File.ReadAllText("retorno.ret"));
+foreach (var item in retorno400.Itens)
+{
+    Console.WriteLine($"{item.NossoNumero}: {item.Ocorrencia?.Descricao} — {item.Valores?.ValorPago}");
+}
+
+var retorno240 = LeitorRetorno240.Ler(File.ReadAllText("retorno240.ret"));
+foreach (var lote in retorno240.Lotes)
+{
+    foreach (var item in lote.Itens)
+    {
+        Console.WriteLine($"{item.Titulo?.NossoNumero}: {item.Ocorrencia?.Codigo}");
+    }
+}
+```
+
+Original lines are preserved, so `EscreverLinhas(Ler(conteudo))` reproduces
+the file byte for byte.
+
+## `cnab` CLI
+
+The tool is a local dotnet tool (`Cnab.Cli`, command name `cnab`). Because it
+multi-targets, pass the framework when using `dotnet run`:
+
+```bash
+# Validate line lengths, record types, fields and trailer totals:
+dotnet run --project src/Cnab.Cli --framework net10.0 -- \
+  validate tests/Cnab.Tests/Golden/341_cobranca_400.rem
+
+# Parse a retorno as JSON (or a readable report without --json):
+dotnet run --project src/Cnab.Cli --framework net10.0 -- \
+  parse tests/Cnab.Tests/Golden/341_cobranca_400.ret --json
+
+# Inspect every field with positions and values:
+dotnet run --project src/Cnab.Cli --framework net10.0 -- \
+  inspect tests/Cnab.Tests/Golden/341_cobranca_400.rem --bank 341
+
+# Generate a remessa from the sample JSON:
+dotnet run --project src/Cnab.Cli --framework net10.0 -- \
+  generate examples/titulos.json --bank 237 --layout 400 --output remessa.rem
+```
+
+Install it as a local tool (nothing is published):
+
+```bash
+dotnet pack src/Cnab.Cli -c Release -o ./.tools
+dotnet tool install --tool-path ./.local --add-source ./.tools Cnab.Cli
+./.local/cnab --help
+```
+
+`generate` accepts `--layout 240|400`, requires `--bank`, writes Latin-1 with
+CRLF (or `--lf`) and sends bytes to stdout when `--output` is omitted. The
+JSON schema is shown in [examples/titulos.json](examples/titulos.json):
+`dataGeracao`, `cedente` (name, document, agency, account and DVs) and
+`titulos` (nosso número, document, species, dates, amount, wallet and pagador
+with address). Missing or invalid fields exit with code 1; invalid arguments
+exit with code 2.
+
+## Tests
+
+- **Official vectors** — solved manual examples (per-bank check digits,
+  barcode, digitable line and due-date factor).
+- **Golden files** — byte-exact remessas and retornos per bank/layout, with
+  CRLF preserved by `.gitattributes`.
+- **Properties (FsCheck)** — across **all** implemented layouts: exact line
+  lengths (240/400), `parse(write(x)) == x` for retornos, and trailer totals
+  equal to the sums of the domain models.
+- **CLI** — valid and invalid vectors for validate, JSON parsing, inspect and
+  byte-exact generation.
+- **Performance** — a test parses **1,000,000 CNAB 240 lines** with a generous
+  60-second bound (normally under 1 second).
 
 ## Benchmarks
 
@@ -78,10 +172,9 @@ The test suite includes:
 dotnet run --project benchmarks/Cnab.Benchmarks -c Release
 ```
 
-Measures reading and writing of 240-position records; with the measured
-numbers, **1 million lines** are parsed in about **1 s** on the development
-hardware (well within the SPEC's generous bound).
+Includes `MotorDeRegistros` (1,000 and 100,000 lines) and `ParseUmMilhao`,
+which measures parsing 1,000,000 240-position records directly.
 
 ## License
 
-MIT — [LICENSE](LICENSE).
+MIT — [LICENSE](LICENSE). The project does not publish NuGet packages.

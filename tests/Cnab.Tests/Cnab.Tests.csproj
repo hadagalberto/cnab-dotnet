@@ -23,11 +23,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Cnab\Cnab.csproj" />
+    <ProjectReference Include="..\..\src\Cnab.Cli\Cnab.Cli.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Golden\*.rem" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Golden\*.ret" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\examples\titulos.json" Link="examples\titulos.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

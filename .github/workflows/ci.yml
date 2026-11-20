@@ -35,5 +35,12 @@ jobs:
       - name: Test (net8.0 + net10.0)
         run: dotnet test tests/Cnab.Tests/Cnab.Tests.csproj -c Release --no-build
 
+      - name: CLI smoke (validate/parse/inspect/generate)
+        run: |
+          dotnet run --project src/Cnab.Cli -c Release --no-build --framework net10.0 -- validate tests/Cnab.Tests/Golden/341_cobranca_400.rem
+          dotnet run --project src/Cnab.Cli -c Release --no-build --framework net10.0 -- parse tests/Cnab.Tests/Golden/341_cobranca_400.ret --json
+          dotnet run --project src/Cnab.Cli -c Release --no-build --framework net10.0 -- inspect tests/Cnab.Tests/Golden/341_cobranca_400.rem --bank 341
+          dotnet run --project src/Cnab.Cli -c Release --no-build --framework net10.0 -- generate examples/titulos.json --bank 237 --layout 400 --output "$RUNNER_TEMP/remessa.rem"
+
       - name: Lint (dotnet format)
         run: dotnet format Cnab.slnx --verify-no-changes --no-restore

@@ -1,0 +1,40 @@
+{
+  "dataGeracao": "2026-11-20",
+  "horaGeracao": "10:15:30",
+  "numeroSequencialArquivo": 1,
+  "numeroRemessa": 1,
+  "convenio": "1234",
+  "codigoBeneficiario": "00623",
+  "codigoProduto": "009",
+  "cedente": {
+    "nome": "EMPRESA TESTE LTDA",
+    "documento": "00000000000191",
+    "agencia": "0057",
+    "dvAgencia": "0",
+    "conta": "12345",
+    "dvConta": "7",
+    "dvAgenciaConta": "0"
+  },
+  "titulos": [
+    {
+      "nossoNumero": "98712345",
+      "numeroDocumento": "NF000001",
+      "especie": "DuplicataMercantilIndicacao",
+      "dataEmissao": "2026-11-20",
+      "dataVencimento": "2026-12-20",
+      "valor": 1500.50,
+      "carteira": "19",
+      "pagador": {
+        "nome": "PAGADOR TESTE LTDA",
+        "documento": "11144477735",
+        "endereco": {
+          "logradouro": "RUA DAS FLORES",
+          "bairro": "CENTRO",
+          "cidade": "BRASILIA",
+          "uf": "DF",
+          "cep": "70000000"
+        }
+      }
+    }
+  ]
+}
