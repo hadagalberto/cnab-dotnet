@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\src\Cnab\Cnab.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Golden\*.rem" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

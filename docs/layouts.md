@@ -106,3 +106,90 @@ fornecido pelo banco. Nenhuma regra foi inventada.
 - `Cnab.Bancos`: regras por banco citadas acima (vetores de teste em
   `DvBancosTests` e `BoletoTests`).
 - `Cnab.Modelo`: domínio (cedente, pagador, título, pagamento, lotes e totais).
+
+## Marco 2 — layouts base CNAB 240 e remessa/retorno por banco
+
+Todas as posições abaixo foram extraídas dos PDFs/manuais oficiais consultados
+durante este marco (download e extração de texto das tabelas). Nenhuma posição
+de campo foi inventada: quando uma informação não pôde ser verificada na fonte
+pública, ela não foi codificada e o fato está registrado ao final desta seção.
+
+### Fontes oficiais (marco 2)
+
+| ID | Documento | Versão | URL | Uso |
+| --- | --- | --- | --- | --- |
+| F1 | FEBRABAN, *Intercâmbio de Informações entre Bancos e Empresas — Padrão FEBRABAN 240 Posições* | V10.9 (14/10/2021) | https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20padrao%20CNAB240%20V%2010%2009%20-%2014_10_21.pdf | Header/trailer de arquivo e lote; segmentos P, Q, R, T, U (cobrança); A, B, J, J-52, O (pagamentos); tabelas C004/C044/C047/G059 |
+| F2 | FEBRABAN, mesmo título | V10.10 (30/08/2022) | https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20padrao%20CNAB240%20V%2010%2010%20-%2030_08_2022_2.pdf | Conferência das tabelas de cobrança (idênticas à V10.9) |
+| F3 | FEBRABAN, mesmo título | V10.11 (31/07/2023) | https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20padrao%20CNAB240%20V%2010%2011%20-%2031_07_2023.pdf | Tabelas de pagamentos (seções 3.1.2–3.1.4) e domínios G025/G028/G029/G060/G100–G102 |
+| B1 | Banco do Brasil, *Particularidades BB — Leiaute CNAB 240* | junho/2026 | https://www.bb.com.br/docs/pub/emp/empl/dwn/CNAB240SegPQRSTY.pdf | Convênio composto, versões 083/042, DV ag/conta em branco, campos 20.3Q/21.3Q/22.3Q, Anexo 01, códigos de movimento |
+| B2 | Banco do Brasil, *Particularidades BB — CNAB240 — Arquivo de Pagamentos* | junho/2026 | https://www.bb.com.br/docs/portal/disem/PgtVer03BB.pdf | Convênio `0126`, ocorrências 231-240 = zeros na remessa, B com `BRL`, J/O |
+| C1 | CAIXA, *Manual de Leiaute de Arquivo Eletrônico CNAB 240 (Cobrança)* | 67.118 v031 | https://www.caixa.gov.br/Downloads/cobranca-caixa/Manual_de_Leiaute_de_Arquivo_Eletronico_CNAB_240.pdf | Convênio 33-52 = zeros, código do beneficiário 59-65/34-40/24-30, nosso número 43-57, C047-A |
+| C2 | CAIXA, *Manual Operacional — Pagamento de Salários, Fornecedores e Autopagamento* | 37.270 v036 | https://caixa.gov.br/Downloads/pagamentos-de-salarios-fornecedores-e-auto-pagamento/Leiaute_CNAB240_Pagamentos_e_Debito_Automatico.pdf | Conta com operação (59-62) + conta (63-70), versão de lote 041 |
+| S1 | Santander, *Layout Cobrança — H7815 — CNAB 240 Posições* | V6 (fevereiro/2023) | https://cms.santander.com.br/sites/WPS/documentos/arq-cobranca-portugues-out23/23-10-24_142404_h7815layoutcobrancacnab240.pdf | Header de arquivo 9-16/17/18-32/33-47, versões 040/030, P 45-57/58/63-77/225 |
+| S2 | Santander, *Pagamento a Fornecedores — Layout CNAB 240 Posições* | YLEC_2403 V11.3.1 (04/2021) | https://cms.santander.com.br/sites/WPS/documentos/arq-layout-pagamento-fornecedores/22-01-07_121040_pagamento-a-fornecedores-layout-cnab-240-v11.3.1.pdf | Header de lote de pagamentos 103-222, versão 031, segmentos A/B/J/O |
+| CO1 | Sicoob, *Guia de Importação de Arquivos CNAB 240* | v3.2 | https://www.sicoob.com.br/documents/20128/1635942/Guia+de+importacao+de+arquivos+CNAB+240.pdf/1c857be9-c3a0-64bd-a023-604533f9bf68?version=1.0&t=1745426919012&download=true | Versões 087 (arquivo) e 045 (lote de pagamentos), trailer de arquivo, G059 |
+| IT1 | Itaú, *Layout de Arquivos — FEBRABAN 240 (Cobrança)* | janeiro/2017 | https://download.itau.com.br/bankline/cobranca_cnab240.pdf | Confirmação dos trailers de arquivo/lote e do domínio C044 |
+| VE1 | Banco do Brasil, *Particularidades BB — Leiaute CNAB 240* | agosto/2017 | https://www.bb.com.br/docs/pub/inst/dwn/Cnab240Agosto2017.pdf | Confirmação das posições de T/U e da tabela de ocorrências |
+
+### Posições implementadas (resumo)
+
+- Header de arquivo FEBRABAN: convênio 33-52 (20), nome da empresa 73-102,
+  nome do banco 103-132, código remessa/retorno 143, data 144-151, hora
+  152-157, NSA 158-163, versão do layout 164-166 (padrão **103**), densidade
+  167-171 (`01600`). F1/F2.
+- Trailer de lote de **cobrança** é diferente do de **pagamentos**: o primeiro
+  discrimina quantidades/valores por carteira (simples 24-46, vinculada
+  47-69, caucionada 70-92, descontada 93-115) e aviso de lançamento 116-123;
+  o segundo usa quantidade de registros 18-23, somatória 24-41 (16 inteiras +
+  2 decimais), somatória de moedas 42-59, aviso de débito 60-65 e ocorrências
+  231-240. F1/F3, IT1.
+- Segmentos de cobrança: P (nosso número 38-57, carteira 58, vencimento
+  78-85, valor 86-100, protesto 221-224), Q (pagador 18-153, sacador/avalista
+  154-209), R (descontos 18-65, multa 66-89, mensagens 100-179), T (movimento
+  C044 16-17, tarifa 199-213, motivo C047 214-223), U (valores 18-153,
+  ocorrência do pagador A001 154-157). F1, B1.
+- Segmentos de pagamentos: A (câmara 18-20, favorito 21-43, valor 120-134,
+  ocorrências 231-240), B genérico V10.x (informações 10/11/12 em 33-226) e
+  variante de endereço (33-127) exigida por BB/CAIXA/Sicoob, J (código de
+  barras numérico 18-61), J-52 (identificador `52` em 18-19), O (código de
+  barras alfanumérico 18-61). F3, B2, CO1.
+- O campo "ocorrência" tem quatro tabelas distintas, que não devem ser
+  confundidas: C044 (movimento de retorno, T/U 16-17), C047 (motivo/rejeição,
+  T 214-223), A001 (ocorrência do pagador, U 154-157) e G059 (pagamentos,
+  231-240). F1/F3.
+
+### Peculiaridades por banco codificadas em `PerfilBanco240`
+
+- **BB (001)**: versão do arquivo 083, do lote de cobrança 042; DV ag/conta
+  não tratado (branco); 20.3Q/21.3Q em branco/zeros; 21.3R/22.3R/23.3R/25.3R
+  zerados; ocorrências de remessa de pagamentos 231-240 = zeros; código C044
+  52 do BB ("registro de título já liquidado — carteira 17") sobrescreve o
+  código FEBRABAN; A4 = "Sacado DDA". B1/B2/VE1.
+- **CAIXA (104)**: convênio do header de arquivo 33-52 = zeros; código do
+  beneficiário 59-65 (header), 34-40 + 13 zeros (header de lote) e 24-30 + 7
+  zeros (segmento P); nosso número nas posições 40-57; 41.3P zerado; tabela
+  de tarifas 06–16. C1/C2.
+- **Santander (033)**: layout próprio de cobrança — 9-16 reservado (8 brancos),
+  inscrição 17/18-32 (15), código de transmissão 33-47 (15), versões 040 e
+  030; P com nosso número 45-57 (13), carteira 58, seu número 63-77 (15),
+  zero fixo 225. S1/S2.
+- **Sicoob (756)**: versão do arquivo 087, do lote de pagamentos 045; para
+  cobrança o espelho público do XLS de 03/09/2018 (fonte oficial protegida por
+  senha) indica versão 081, DV ag/conta 72 = 0, 22.1 = zeros, 15.3P = 0,
+  16.3P = branco, 38.3P = 0, 40.3P = 09 e 41.3P = zeros — esses valores são
+  marcados como **menor confiança** no código; os de pagamentos vêm do PDF
+  oficial CO1.
+
+### Itens não verificados (não inventados)
+
+- A versão de layout de **remessa** da CAIXA não foi extraível do texto do PDF
+  (o manual só explicita as versões de retorno 040/047). O gerador usa o
+  padrão FEBRABAN e permite substituição explícita pelo chamador.
+- O domínio completo da carteira C006 da CAIXA e do BB (além de `1` = simples)
+  e a tabela completa C044 da CAIXA não foram extraíveis; o código cobre os
+  códigos publicados nas tabelas citadas e expõe mapas injetáveis.
+- As posições de **cobrança** do Sicoob vêm de espelho não oficial do XLS
+  (a fonte oficial é uma planilha protegida). Nenhuma regra adicional foi
+  inferida além das ali publicadas.
+- A descrição do código A001 na faixa 0301–0306 foi reconstruída de um manual
+  com colunas entrelaçadas na extração; os demais códigos seguem F1.
