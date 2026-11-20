@@ -52,19 +52,30 @@ Bradesco, Itaú, Caixa, Santander, Sicredi e Sicoob.
 | Caixa (SIGCB) | 17 posições (2 de carteira/emissão + 15 livres) + DV | Módulo 11 pesos 2-9 sobre 17 posições; resultado > 9 → 0 (Anexo IV; vetor: "1400000000000019" → DV 7) | código beneficiário(6)+DV(1)+NN[2..4](3)+NN[0](1)+NN[5..7](3)+NN[1](1)+NN[8..16](9)+DV campo livre(1) (Anexo III; vetor: 005507 DV 7 + NN "14/222333777777777" → DV campo livre 1; DV geral 4, "não admite 0") | DV conta (NE051, CNAB 400 67.126 v029): módulo 11 pesos 2-9 sobre conta(12), >9 → 0 (vetor: 000000109990 → 6); DV ag/conta (NE052): módulo 11 sobre agência(4)+conta(12) (vetor: 0161+000000109990 → 5); DV do código do beneficiário (Anexo VI): módulo 11 (vetor: 005507 → 7); DV agência: "fornecido pela CAIXA, calculado pelo módulo 11" (NE049) |
 | Sicredi | AA/B/NNNNN (8) + DV | Módulo 11 pesos 2-9 sobre cooperativa(4)+posto(2)+beneficiário(5)+AA(2)+B(1)+NNNNN(5); resultado 10/11 → 0 (vetor da documentação: 0165/02/00623/07/2/00003 → DV 1) | tipo cobrança "1"+tipo carteira "1"+NN(9, com DV)+cooperativa(4)+posto(2)+beneficiário(5)+indicador de valor(1: "1" com valor, "0" zerado)+"0"+DV (vetor do item 10.4: "11"+"072000031"+"0165"+"02"+"00623"+"1"+"0" → DV 8; amostra real da API: "112510061420512031533510"+DV 3, barcode "74891886400000099901125100614205120315335103", linha "74891125110061420512803153351030188640000009990") | Header CNAB 240 Sicredi traz "Conta DV" como dado do banco; algoritmo não publicado na documentação pública |
 | Sicoob | 7 dígitos (valor iniciado em 1) + DV | Módulo 11 com constante "3197" alinhada à esquerda sobre cooperativa(4)+cliente(10)+NN(7); resto 0/1 → 0, senão 11-resto (vetor do documento: 0001+0000000019+0000021 → somatório 36, DV 8) | carteira(1)+agência(4)+modalidade(2)+código do cliente(7)+NN(8, com DV)+parcela(3, "001" se única); linha digitável campo 1 "AAABC.DDDDE" | Não publicado na planilha de especificações do boleto |
+| BB (001) | convênio 4 → convênio(4)+seq(7)+DV; convênio 6 → convênio(6)+seq(5)+DV; convênio 7 → convênio(7)+seq(10), sem DV | Anexo XI: módulo 11 com pesos 9→2 da direita para a esquerda; resto 1-9 → DV = resto, 10 → "X", 0 → 0 (vetor: 05009401448 → 1) | conv4: convênio(4)+seq(7)+agência(4)+conta(8)+carteira(2); conv6: convênio(6)+seq(5)+agência(4)+conta(8)+carteira(2); conv7: zeros(6)+convênio(7)+seq(10)+carteira(2) | DV do prefixo da agência: mesmo Anexo XI (vetor derivado: 1234 → 3); G012 (DV ag/conta) não é tratado pelo BB |
+| Inter (077) | 10 dígitos + DV (carteira 110; 112/121 atribuídas pelo banco) | Módulo 10 sobre agência(4)+carteira(3)+NN(10) (vetor: 0001/110/0004309540 → DV 1) | agência(4)+carteira(3)+nº operação(7)+NN(11, com DV) | Agência única 0001; DV de conta não publicado |
+| BTG (208) | 11 dígitos atribuídos pelo banco | Não publicado | agência(4)+carteira(2)+NN(11, sem DV)+conta(7)+"0" | Não publicado |
 
-### Bancos com algoritmos pendentes de fonte pública
+### Banco com algoritmo pendente de fonte pública
 
-| Banco | Situação no marco 1 | Fonte tentada |
+| Banco | Situação no marco 1 | Fonte consultada |
 | --- | --- | --- |
-| Banco do Brasil (001) | Composição do nosso número capturada (Particularidades BB, Leiaute CNAB 240, Junho/2019: convênio 4 → 11+DV; convênio 6 → 11+DV; convênio 7 → 17 sem DV; "não há DV para convênio acima de 1.000.000" — CNAB 400, nota 06; o DV pode ser "X", informado em maiúsculo). O **algoritmo** do DV do nosso número e o layout do campo livre do código de barras só constam do manual "Utilização do Código de Barras" distribuído na contratação — não publicado em canal aberto acessível durante este marco. | www.bb.com.br/site/pro-seu-negocio/aplicativos-leiautes-de-arquivos/ (portal com downloads por trás de aplicação; URLs diretas de PDF antigas indisponíveis) |
-| Inter (077) | O Inter atribui o nosso número ("será preenchido pelo Inter" — posições 380-390 do registro de transação, Manual de Emissão CNAB400, Conta Digital PJ; espelho em docs dos parceiros) e a API de cobrança devolve código de barras/linha digitável gerados pelo banco. Sem algoritmo público de DV/campo livre. | developers.inter.co/docs/cnab/manuais (portal do desenvolvedor — página renderizada por aplicação; PDF não acessível programaticamente durante o marco) |
-| BTG (208) | A API de cobrança (API BTG Cobrança) retorna nosso número, linha digitável e código de barras gerados pelo banco; manuais de CNAB distribuídos no onboarding. Sem algoritmo público de DV/campo livre. | developers.btgpactual.com (indisponível durante o marco) |
+| BTG (208) | O campo livre do código de barras está publicado no portal do desenvolvedor (ver tabela acima) e foi codificado. O **DV do nosso número** não tem algoritmo publicado: o número (com DV) é atribuído pelo banco e devolvido no retorno/API. A biblioteca valida o formato de 11 posições e não inventa regra de cálculo. | developers.empresas.btgpactual.com/docs/cobrança (documentação oficial consultada) |
 
-Para esses três bancos, a biblioteca codifica **exatamente o que está
-publicado** (composição/formato do nosso número, DV aceitando "X" no BB) e
-deixa explícito, em XML docs e testes, o que depende de valor fornecido pelo
-banco. Nenhuma regra foi inventada.
+BB e Inter tiveram seus algoritmos localizados em manuais oficiais durante
+este marco (ver tabela de fontes adicionais) e estão implementados com vetores
+resolvidos. Para o BTG, a biblioteca codifica **exatamente o que está
+publicado** e deixa explícito, em XML docs e testes, o que depende de valor
+fornecido pelo banco. Nenhuma regra foi inventada.
+
+## Fonte adicionais consultadas neste marco (busca efetiva)
+
+| Documento | Versão | URL | Regras confirmadas |
+| --- | --- | --- | --- |
+| FEBRABAN, Comunicado **FB-009/2023** (reproduzido em manuais oficiais de banco) | 2023 | https://www.banpara.b.br/PortalImagens/2tdgh54u/manual-de-procedimento-de-impressao-de-boletos-por-terceiros-cobranca-banpara-v1-2.pdf (Banpara, *Manual de Procedimento de Impressão de Boletos por Terceiros – Cobrança Registrada v1.2*, Anexos 02 e 03) | Fator 9999 em 21/02/2025; 1000 em 22/02/2025; 1667 em 21/12/2026; 4789 em 09/07/2035; 9999 em 13/10/2049. O Anexo 03 expressa a nova data-base como 29/05/2022 (29/05/2022 + 1000 dias = 22/02/2025). |
+| BB, *Especificações Técnicas para Confecção de Boleto de Pagamento do Banco do Brasil* (Doc5175Bloqueto) | maio/2019 | https://www.bb.com.br/docs/pub/emp/empl/dwn/Doc5175Bloqueto.pdf (espelho consultado: https://boletobancario-codigodebarras.com/docs/Doc5175Bloqueto.pdf) | Anexos VII/IX (campo livre por convênio 4/6/7) e **Anexo XI**: DV do nosso número/prefixo da agência/código do beneficiário por módulo 11 com pesos **9 a 2 da direita para a esquerda**; resto 1-9 → DV = resto, resto 10 → "X", resto 0 → 0. Vetor resolvido: 05009401448 → DV 1. |
+| Inter, *Manual CNAB400 – Emissão de boletos de cobrança* | V9 (06/07/2026) | https://s3.sa-east-1.amazonaws.com/static.bancointer.com.br/openbanking/cnab/manual/manual.pdf | Seção 7.1.3: campo livre = agência(4)+carteira(3)+nº operação(7)+NN(11). Seção 7.3: DV do NN = módulo 10 sobre agência(4)+carteira(3)+NN(10); vetor 0001/110/0004309540 → DV 1. Carteiras 110 (cliente numera), 112/121 (banco numera). |
+| BTG Pactual, portal do desenvolvedor — *Cobrança* | atual | https://developers.empresas.btgpactual.com/docs/cobran%C3%A7a | Campo livre = agência(4)+carteira(2)+NN(11, sem DV)+conta(7)+zero fixo; tabela do fator com reinício em 22/02/2025. |
 
 ## Fator de vencimento — tabelas publicadas usadas nos testes
 

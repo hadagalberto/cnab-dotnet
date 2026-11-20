@@ -13,8 +13,11 @@ namespace Cnab.Boleto;
 /// 07.10.1997").
 /// </para>
 /// <para>
-/// Reinício de fevereiro de 2025 (regra FEBRABAN, Comunicados FB-082 e FB-122
-/// citados pela Caixa e pelo Sicredi): o fator atinge 9999 em 21/02/2025 e,
+/// Reinício de fevereiro de 2025 (Comunicado FEBRABAN FB-009/2023; reproduzido
+/// em manuais oficiais de banco, por exemplo Banpara "Manual de Procedimento
+/// de Impressão de Boletos por Terceiros – Cobrança Registrada v1.2", Anexos
+/// 02 e 03: https://www.banpara.b.br/PortalImagens/2tdgh54u/manual-de-procedimento-de-impressao-de-boletos-por-terceiros-cobranca-banpara-v1-2.pdf ):
+/// o fator atinge 9999 em 21/02/2025 e,
 /// a partir de <c>22/02/2025</c>, retorna a 1000, somando 1 a cada dia — a
 /// data de 22/02/2025 passa a ser a nova data-base do ciclo.
 /// Tabelas publicadas (Bradesco, Itaú Anexo 6, Caixa Anexo II, Sicredi 10.7):
@@ -33,7 +36,11 @@ public static class FatorDeVencimento
     /// <summary>Data-base do ciclo original: 07/10/1997 (fator 1000 em 03/07/2000).</summary>
     public static readonly DateOnly DataBaseOriginal = new(1997, 10, 7);
 
-    /// <summary>Data-base do novo ciclo a partir de 22/02/2025 (fator 1000).</summary>
+    /// <summary>
+    /// Data-base do novo ciclo a partir de 22/02/2025 (fator 1000). O manual
+    /// Banpara citado acima expressa a mesma regra com data-base 29/05/2022,
+    /// pois 29/05/2022 + 1000 dias = 22/02/2025.
+    /// </summary>
     public static readonly DateOnly NovaDataBase = new(2025, 2, 22);
 
     /// <summary>Último vencimento do ciclo original (fator 9999).</summary>

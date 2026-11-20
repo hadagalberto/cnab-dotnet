@@ -39,9 +39,9 @@ tests. Every layout position and every check-digit algorithm comes from an
   código de barras (44) and linha digitável (47) with per-bank check digits,
   validated against official manual vectors and real API samples.
 - **Per-bank algorithms** — nosso número and agency/account check digits per
-  each bank's manual (Bradesco, Itaú, Santander, Caixa, Sicredi, Sicoob with
-  solved vectors; BB, Inter and BTG with exactly what each one publishes —
-  see [docs/layouts.md](docs/layouts.md#bancos-com-algoritmos-pendentes-de-fonte-pública)).
+  each bank's manual (BB, Bradesco, Itaú, Santander, Caixa, Inter, Sicredi and
+  Sicoob with solved vectors; BTG with its published campo livre and the
+  bank-assigned DV — see [docs/layouts.md](docs/layouts.md)).
 
 Upcoming milestones: per-bank CNAB 240/400 layouts, remessa generation,
 retorno parsing, payment segments (A/B/J/O) and the `cnab` CLI.

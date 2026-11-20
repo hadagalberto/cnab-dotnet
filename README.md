@@ -39,9 +39,10 @@ verificador vêm de **manuais oficiais citados no código e em
   **22/02/2025**), código de barras (44) e linha digitável (47) com os DVs por
   banco, contra vetores oficiais dos manuais e amostras reais das APIs.
 - **Algoritmos por banco** — DV de nosso número e de agência/conta conforme o
-  manual de cada banco (Bradesco, Itaú, Santander, Caixa, Sicredi, Sicoob com
-  vetores resolvidos; BB, Inter e BTG com o que cada um publica — ver
-  [docs/layouts.md](docs/layouts.md#bancos-com-algoritmos-pendentes-de-fonte-pública)).
+  manual de cada banco (BB, Bradesco, Itaú, Santander, Caixa, Inter, Sicredi e
+  Sicoob com vetores resolvidos; BTG com o campo livre publicado e o DV
+  atribuído pelo banco — ver
+  [docs/layouts.md](docs/layouts.md)).
 
 Marcos futuros: layouts CNAB 240/400 por banco, geração de remessa, leitura de
 retorno, segmentos de pagamento (A/B/J/O) e CLI `cnab`.

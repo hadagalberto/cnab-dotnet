@@ -21,12 +21,22 @@ e o projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Fator de vencimento com a regra do reinício de 22/02/2025, código de
   barras (44 posições) e linha digitável (47 dígitos) com composição,
   reversão e validação de DVs (`Cnab.Boleto`).
-- Algoritmos por banco com vetores oficiais: Bradesco (módulo 11 base 7 com
-  dígito "P"), Itaú (DAC módulo 10 com variantes por carteira), Santander
+- Algoritmos por banco com vetores oficiais: BB (Anexo XI do Doc5175: módulo 11
+  com pesos 9 a 2 da direita para a esquerda, resto 10 → "X", vetor
+  05009401448 → 1; campos livres dos anexos VII/IX), Bradesco (módulo 11 base 7
+  com dígito "P"), Itaú (DAC módulo 10 com variantes por carteira), Santander
   (módulo 11 com regra de resto 0/1/10), Caixa SIGCB (DV do nosso número, do
-  código do beneficiário, do campo livre, da conta e de agência/conta),
-  Sicredi (DV sobre cooperativa/posto/beneficiário) e Sicoob (constante
-  "3197") (`Cnab.Bancos`).
+  código do beneficiário, do campo livre, da conta e de agência/conta), Inter
+  (DV do NN = módulo 10 sobre agência+carteira+NN, vetor 0001/110/0004309540
+  → 1; campo livre da seção 7.1.3), Sicredi (DV sobre
+  cooperativa/posto/beneficiário), Sicoob (constante "3197") e BTG (campo livre
+  publicado no portal do desenvolvedor) (`Cnab.Bancos`).
+- Correção do motor: campos `int` não anuláveis agora usam o leitor com
+  verificação de faixa, gerando `CampoCnabException` com linha/coluna/campo em
+  vez de `OverflowException`.
+- Fontes oficiais buscadas e citadas (FEBRABAN FB-009/2023 via Banpara Anexos
+  02/03, manuais Doc5175/BB, CNAB400/Inter e portal BTG) em
+  `docs/layouts.md`.
 - Domínio: cedente, pagador, sacador avalista, conta bancária, título (juros,
   multa, desconto, protesto, instruções), pagamento (TED/DOC/Pix/boleto/
   tributo) e lotes com totais de trailer calculados (`Cnab.Modelo`).

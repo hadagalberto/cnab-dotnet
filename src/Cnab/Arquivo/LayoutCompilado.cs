@@ -240,8 +240,14 @@ internal sealed class LayoutCompilado
             nameof(EscreverData8), BindingFlags.NonPublic | BindingFlags.Static)!;
 
         public static MethodInfo MetodoTexto => TextoInfo;
-        public static MethodInfo MetodoInteiro(Type tipoPropriedade) =>
-            Nullable.GetUnderlyingType(tipoPropriedade) == typeof(int) ? InteiroInfo : LongInfo;
+        public static MethodInfo MetodoInteiro(Type tipoPropriedade)
+        {
+            // Nullable.GetUnderlyingType devolve null para tipos NÃO anuláveis:
+            // sem o ?? abaixo, um int comum cairia na via long e o erro de
+            // faixa (CampoCnabException) nunca seria usado.
+            var tipoBase = Nullable.GetUnderlyingType(tipoPropriedade) ?? tipoPropriedade;
+            return tipoBase == typeof(int) ? InteiroInfo : LongInfo;
+        }
         public static MethodInfo MetodoDecimal => DecimalInfo;
         public static MethodInfo MetodoData6 => Data6Info;
         public static MethodInfo MetodoData8 => Data8Info;
@@ -514,7 +520,8 @@ internal sealed class LayoutCompilado
 
         public static MethodInfo MetodoInteiro(Type tipoPropriedade, bool anulavel)
         {
-            var ehInt = Nullable.GetUnderlyingType(tipoPropriedade) == typeof(int);
+            var tipoBase = Nullable.GetUnderlyingType(tipoPropriedade) ?? tipoPropriedade;
+            var ehInt = tipoBase == typeof(int);
             return (ehInt, anulavel) switch
             {
                 (true, true) => InteiroAnulavelInfo,
