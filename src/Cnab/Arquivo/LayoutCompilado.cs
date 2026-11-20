@@ -705,13 +705,28 @@ internal sealed class LayoutCompilado
             string nome,
             int? numeroLinha)
         {
+            // Um campo numérico inteiramente em branco/zeros é "não utilizado"
+            // e lê como zero (ou null nos anuláveis). Espaços MISTURADOS com
+            // dígitos, porém, indicam alinhamento inválido e são erro: o
+            // padrão FEBRABAN preenche numéricos com zeros à esquerda.
+            var fieldTodoZerosOuBrancos = TodoZeroOuBranco(linha, inicio, tamanho);
             long valor = 0;
             for (var i = inicio; i < inicio + tamanho; i++)
             {
                 var c = linha[i];
                 if (c == ' ')
                 {
-                    continue;
+                    if (fieldTodoZerosOuBrancos)
+                    {
+                        continue;
+                    }
+
+                    throw new CampoCnabException(
+                        "Espaço em campo numérico preenchido (use zeros à esquerda)",
+                        nome,
+                        numeroLinha,
+                        inicio + 1,
+                        tamanho);
                 }
 
                 if (c is < '0' or > '9')

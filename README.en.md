@@ -165,6 +165,11 @@ exit with code 2.
   byte-exact generation.
 - **Performance** — a test parses **1,000,000 CNAB 240 lines** with a generous
   60-second bound (normally under 1 second).
+- **Hardening (milestone 5)** — UTF-8 BOM, lone CR, empty/accented paths,
+  invalid `--output`, unsupported bank, invalid time, spaces inside numeric
+  fields, missing trailer and 1,000 titles; retorno samples cover every
+  occurrence family. The executed checklist is at
+  [docs/SPEC-CHECKLIST.md](docs/SPEC-CHECKLIST.md).
 
 ## Benchmarks
 

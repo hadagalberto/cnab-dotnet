@@ -25,24 +25,7 @@ public static class ArquivoCnab
     /// <summary>Separa registros por CRLF ou LF, ignorando o delimitador final.</summary>
     /// <param name="conteudo">Conteúdo textual do arquivo.</param>
     /// <returns>Linhas sem delimitadores.</returns>
-    public static IReadOnlyList<string> SepararLinhas(string conteudo)
-    {
-        ArgumentNullException.ThrowIfNull(conteudo);
-        var partes = conteudo.Split(["\r\n", "\n"], StringSplitOptions.None);
-        var linhas = new List<string>(partes.Length);
-        for (var i = 0; i < partes.Length; i++)
-        {
-            var parte = partes[i];
-            if (parte.Length == 0 && i == partes.Length - 1)
-            {
-                continue;
-            }
-
-            linhas.Add(parte);
-        }
-
-        return linhas;
-    }
+    public static IReadOnlyList<string> SepararLinhas(string conteudo) => LinhasCnab.Separar(conteudo);
 
     /// <summary>Detecta o layout pelo comprimento da primeira linha.</summary>
     /// <param name="linhas">Linhas do arquivo.</param>

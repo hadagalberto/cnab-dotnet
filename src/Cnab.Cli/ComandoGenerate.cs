@@ -28,14 +28,9 @@ public static class ComandoGenerate
             return ResultadoCli.Uso("'generate' exige --layout <240|400>.");
         }
 
-        string conteudoJson;
-        try
+        if (!ArquivoTexto.TentarLer(opcoes.Alvo, out var conteudoJson, out var erroLeitura))
         {
-            conteudoJson = File.ReadAllText(opcoes.Alvo!);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return ResultadoCli.Erro($"Não foi possível ler '{opcoes.Alvo}': {ex.Message}");
+            return ResultadoCli.Erro(erroLeitura);
         }
 
         try
@@ -49,7 +44,11 @@ public static class ComandoGenerate
                 return ResultadoCli.Arquivo(bytes, string.Empty);
             }
 
-            File.WriteAllBytes(opcoes.Saida, bytes);
+            if (!ArquivoTexto.TentarGravar(opcoes.Saida, bytes, out var erroGravacao))
+            {
+                return ResultadoCli.Erro(erroGravacao);
+            }
+
             return ResultadoCli.Ok(
                 $"Remessa CNAB {opcoes.Layout.Value} gerada em '{opcoes.Saida}' "
                 + $"({bytes.Length} bytes, {ArquivoCnab.SepararLinhas(conteudo).Count} registros)."

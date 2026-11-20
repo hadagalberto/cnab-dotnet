@@ -13,14 +13,9 @@ public static class ComandoValidate
     /// <returns>Relatório de validação.</returns>
     public static ResultadoCli Executar(Cli.Opcoes opcoes)
     {
-        string conteudo;
-        try
+        if (!ArquivoTexto.TentarLer(opcoes.Alvo, out var conteudo, out var erroLeitura))
         {
-            conteudo = ArquivoTexto.Ler(opcoes.Alvo!);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return ResultadoCli.Erro($"Não foi possível ler '{opcoes.Alvo}': {ex.Message}");
+            return ResultadoCli.Erro(erroLeitura);
         }
 
         try
@@ -114,6 +109,22 @@ public static class ComandoValidate
         List<string> avisos)
     {
         var ultima = linhas[^1];
+        var tipoUltima = ArquivoCnab.ObterTipoRegistro(layout, ultima, banco, ehRemessa);
+        var ehTrailerArquivo = layout == LayoutArquivo.Cnab240
+            ? tipoUltima == typeof(TrailerArquivo240)
+            : tipoUltima is not null && tipoUltima.Name.StartsWith("Trailer", StringComparison.Ordinal);
+        if (!ehTrailerArquivo)
+        {
+            // Um remessa sem trailer de arquivo está incompleta mesmo que todas
+            // as linhas presentes tenham comprimento e campos válidos.
+            if (ehRemessa && (layout == LayoutArquivo.Cnab240 || banco is not null))
+            {
+                erros.Add("trailer de arquivo ausente: a última linha não é um trailer de arquivo.");
+            }
+
+            return;
+        }
+
         if (layout == LayoutArquivo.Cnab240)
         {
             var trailer = RegistroCnab<TrailerArquivo240>.Ler(ultima, linhas.Count);

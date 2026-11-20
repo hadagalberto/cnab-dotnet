@@ -282,10 +282,13 @@ páginas HTML oficiais e as transcrições citadas foram lidas diretamente.
 
 ### Golden files e round-trip
 
-`tests/Cnab.Tests/Golden/` contém `NNN_cobranca_240.rem` (237, 341, 748, 208),
-`077_pagamento_240.rem`, `NNN_cobranca_400.rem` e `NNN_cobranca_400.ret`
-(341, 237, 748, 077), todos com CRLF preservado por `.gitattributes`.
-`GoldenFilesMilestone3Tests` compara byte a byte a saída dos geradores e o
+`tests/Cnab.Tests/Golden/` contém `NNN_cobranca_240.rem` para **todos os oito
+bancos com layout de cobrança 240** (001, 033, 104, 237, 341, 748, 756 e 208;
+001/033/104/756 foram acrescentados no marco 5). O Inter (077) não tem cobrança
+240 publicada e por isso aparece apenas em `077_pagamento_240.rem`.
+`NNN_cobranca_400.rem` e
+`NNN_cobranca_400.ret` (341, 237, 748, 077), todos com CRLF preservado por
+`.gitattributes`. `GoldenFilesMilestone3Tests` compara byte a byte a saída dos geradores e o
 round-trip `parse(write(x)) == x` dos retornos. LINHA de retorno é preservada
 integralmente nos modelos (`LinhaOriginal`, `LinhaHeader`, `LinhaTrailer`) —
 isso cobre também bancos cujos cabeçalhos divergem do registro FEBRABAN
@@ -363,4 +366,38 @@ o retorno parseado é reescrito byte a byte e os trailers refletem contagens e
 somatórias dos modelos. `DesempenhoParseUmMilhaoTests` analisa 1.000.000 de
 linhas de 240 posições com limite generoso de 60 s, e o projeto
 `Cnab.Benchmarks` inclui o benchmark equivalente (`ParseUmMilhao`).
+
+## Marco 5 — auditoria, hardening e fontes reconsultadas
+
+Nenhuma posição ou regra nova foi inventada neste marco. A auditoria percorreu
+cada linha do SPEC e executou todos os comandos e testes. A fonte oficial
+Sicredi (S3, seções 4.4/4.5, 6.3/6.4 e 7.1) foi **reconsultada ao vivo** em
+20/11/2026 no endereço
+https://developers.sicredi.com.br/public/docs/getting-started-cnabs-240-billing.md
+e confirma: o DV do nosso número é módulo 11 sobre `aaaappcccccyybnnnnn` com
+pesos 2–9 da direita para a esquerda (vetor 0165/02/00623/07/2/00003 → 1); o
+delimitador é `0D0A`; o charset alfanumérico é o adotado em `CharsetCnab`; e a
+Tabela 7.1 lista os movimentos 02/03/06/09/26/28/30 usados nos testes de
+família. O PDF FEBRABAN V10.9 (F1) também foi consultado no endereço registrado
+na tabela de convenções; o `webfetch` disponível não extrai PDF, mas confirmou
+o content-type `application/pdf` do documento publicado.
+
+Decisões de hardening (comportamento, não layout) tomadas neste marco, todas
+com regressões em `HostileInputTests`:
+
+- `ArquivoTexto.Ler` descarta BOM UTF-8 inicial: o registro CNAB começa na
+  posição 1 com o código do banco (G001/F1), sem prefixos.
+- `LinhasCnab.Separar` é a única rotina de separação de registros do projeto,
+  usada pela CLI e pelos leitores 240/400. Aceita CRLF (padrão), LF e CR solto
+  e preserva linhas vazias internas para diagnóstico na linha correta.
+- Campos numéricos com espaços **misturados** a dígitos são rejeitados com
+  linha/coluna/campo; um campo inteiramente em branco/zeros continua lendo como
+  "não utilizado" (zero/`null`), conforme a convenção FEBRABAN de preenchimento
+  numérico com zeros à esquerda (seção 6.4 da fonte Sicredi acima).
+- A CLI converte falhas de caminho/E/S (caminho vazio, diretório inexistente,
+  permissão negada) em erro de dados com código 1, sem exceções não capturadas.
+- `--bank` aceita somente os nove códigos do SPEC e reporta erro de uso (2)
+  para códigos não suportados; `horaGeracao` valida hora/minuto/segundo antes
+  de construir `TimeOnly`.
+- `validate` exige trailer de arquivo na última linha de uma remessa.
 

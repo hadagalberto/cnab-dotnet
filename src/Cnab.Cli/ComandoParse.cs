@@ -22,14 +22,9 @@ public static class ComandoParse
     /// <returns>Saída do comando.</returns>
     public static ResultadoCli Executar(Cli.Opcoes opcoes)
     {
-        string conteudo;
-        try
+        if (!ArquivoTexto.TentarLer(opcoes.Alvo, out var conteudo, out var erroLeitura))
         {
-            conteudo = ArquivoTexto.Ler(opcoes.Alvo!);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return ResultadoCli.Erro($"Não foi possível ler '{opcoes.Alvo}': {ex.Message}");
+            return ResultadoCli.Erro(erroLeitura);
         }
 
         try

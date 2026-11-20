@@ -166,6 +166,11 @@ argumentos inválidos, código 2.
   inspeção e geração com saída byte-exata.
 - **Desempenho** — um teste analisa **1.000.000 de linhas CNAB 240** com
   limite generoso de 60 s (geralmente < 1 s).
+- **Hardening (marco 5)** — BOM UTF-8, CR solto, caminhos vazios/com acentos,
+  `--output` inválido, banco não suportado, hora inválida, numérico com espaço,
+  trailer ausente e 1.000 títulos; amostras de retorno cobrem todas as famílias
+  de ocorrência. O checklist executado está em
+  [docs/SPEC-CHECKLIST.md](docs/SPEC-CHECKLIST.md).
 
 ## Benchmarks
 

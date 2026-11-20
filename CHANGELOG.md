@@ -65,6 +65,25 @@ e o projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   IN1/IN2, T1/T2 e F4) com versões, URLs, posições e desvios em
   `docs/layouts.md`.
 
+### Adicionado (marco 5)
+
+- `docs/SPEC-CHECKLIST.md`: verificação linha a linha do SPEC com status,
+  comando/teste executado e evidência para cada requisito.
+- Golden files byte-exatos de cobrança 240 para BB (001), Santander (033),
+  Caixa (104) e Sicoob (756), fechando a cobertura dos oito bancos com layout
+  de cobrança 240.
+- Amostras de retorno 240 e 400 para **todas** as famílias de ocorrência
+  (`OcorrenciasFamiliaTests`), respeitando os de-para próprios do Itaú 400.
+- `HostileInputTests`: BOM UTF-8, CR solto, caminhos vazios e com
+  espaços/acentos, diretório de saída inexistente, banco não suportado,
+  `horaGeracao` inválida, campo numérico com espaço no meio, trailer ausente,
+  retorno corrompido, 1.000 títulos e saída `--lf`/stdout.
+- Correções de robustez: separação unificada de linhas (`LinhasCnab`), leitura
+  de arquivo sem exceções não capturadas, validação de `--bank`, de hora e de
+  trailer, e rejeição de espaços em campos numéricos preenchidos.
+- Exemplos de biblioteca dos READMEs agora são compilados e executados por
+  `ReadmeExamplesTests`.
+
 ### Adicionado (marco 4)
 
 - Ferramenta `dotnet cnab` (`src/Cnab.Cli`, comando `cnab`, pacote local

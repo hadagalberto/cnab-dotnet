@@ -17,9 +17,13 @@ public class GoldenFilesMilestone3Tests
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Golden", nome));
 
     [Theory]
+    [InlineData(1, "001_cobranca_240.rem")]
+    [InlineData(33, "033_cobranca_240.rem")]
+    [InlineData(104, "104_cobranca_240.rem")]
     [InlineData(237, "237_cobranca_240.rem")]
     [InlineData(341, "341_cobranca_240.rem")]
     [InlineData(748, "748_cobranca_240.rem")]
+    [InlineData(756, "756_cobranca_240.rem")]
     [InlineData(208, "208_cobranca_240.rem")]
     public void Remessa240_ByteExata(int codigo, string arquivo)
     {

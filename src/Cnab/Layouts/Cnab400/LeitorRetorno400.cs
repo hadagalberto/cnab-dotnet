@@ -21,7 +21,7 @@ public static class LeitorRetorno400
     public static Retorno400 Ler(string conteudo, Banco? banco = null)
     {
         ArgumentNullException.ThrowIfNull(conteudo);
-        var linhas = SepararLinhas(conteudo);
+        var linhas = LinhasCnab.Separar(conteudo);
         if (linhas.Count < 3)
         {
             throw new CampoCnabException("Arquivo retorno CNAB 400 incompleto: esperado header, detalhe e trailer.");
@@ -64,23 +64,6 @@ public static class LeitorRetorno400
         }
 
         linhas.Add(retorno.TrailerArquivo.LinhaOriginal);
-        return linhas;
-    }
-
-    private static IReadOnlyList<string> SepararLinhas(string conteudo)
-    {
-        var partes = conteudo.Split(["\r\n", "\n"], StringSplitOptions.None);
-        var linhas = new List<string>(partes.Length);
-        foreach (var parte in partes)
-        {
-            if (parte.Length == 0 && ReferenceEquals(parte, partes[^1]))
-            {
-                continue;
-            }
-
-            linhas.Add(parte);
-        }
-
         return linhas;
     }
 

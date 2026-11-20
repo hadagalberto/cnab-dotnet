@@ -156,7 +156,13 @@ public static class GeradorEntrada
             && int.TryParse(digitos, NumberStyles.None, CultureInfo.InvariantCulture, out var hora)
             && hora is >= 0 and <= 235959)
         {
-            return new TimeOnly(hora / 10000, (hora / 100) % 100, hora % 100);
+            var horas = hora / 10000;
+            var minutos = (hora / 100) % 100;
+            var segundos = hora % 100;
+            if (minutos <= 59 && segundos <= 59)
+            {
+                return new TimeOnly(horas, minutos, segundos);
+            }
         }
 
         throw new CliException($"horaGeracao inválida: '{texto}' (use HH:mm:ss ou HHmmss).");

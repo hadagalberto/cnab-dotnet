@@ -1,6 +1,7 @@
 namespace Cnab.Cli;
 
 using System.Globalization;
+using Cnab.Modelo;
 
 /// <summary>Resultado de uma invocação da ferramenta, sem depender do console.</summary>
 public sealed record ResultadoCli
@@ -86,6 +87,12 @@ public static class Cli
             return ResultadoCli.Ok("cnab 4.0.0" + Environment.NewLine);
         }
 
+        var comando = args[0].ToLowerInvariant();
+        if (comando is not ("validate" or "parse" or "inspect" or "generate"))
+        {
+            return ResultadoCli.Uso($"Comando desconhecido: '{args[0]}'.");
+        }
+
         var opcoes = Opcoes.Ler(args);
         if (opcoes.Erro is not null)
         {
@@ -97,13 +104,12 @@ public static class Cli
             return ResultadoCli.Uso($"Arquivo de entrada ausente para '{args[0]}'.");
         }
 
-        return args[0].ToLowerInvariant() switch
+        return comando switch
         {
             "validate" => ComandoValidate.Executar(opcoes),
             "parse" => ComandoParse.Executar(opcoes),
             "inspect" => ComandoInspect.Executar(opcoes),
-            "generate" => ComandoGenerate.Executar(opcoes),
-            _ => ResultadoCli.Uso($"Comando desconhecido: '{args[0]}'."),
+            _ => ComandoGenerate.Executar(opcoes),
         };
     }
 
@@ -185,9 +191,14 @@ public static class Cli
                             if (nome == "--bank")
                             {
                                 if (int.TryParse(valor, NumberStyles.None, CultureInfo.InvariantCulture, out var codigoBanco)
-                                    && codigoBanco is >= 1 and <= 999)
+                                    && Bancos.TentarObter(codigoBanco, out _))
                                 {
                                     banco = codigoBanco;
+                                }
+                                else if (int.TryParse(valor, NumberStyles.None, CultureInfo.InvariantCulture, out codigoBanco)
+                                         && codigoBanco is >= 1 and <= 999)
+                                {
+                                    erro = $"Banco {codigoBanco:000} não é suportado pelo Cnab.NET.";
                                 }
                                 else
                                 {
