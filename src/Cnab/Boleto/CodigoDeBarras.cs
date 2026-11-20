@@ -105,13 +105,15 @@ public static class CodigoDeBarras
 
     /// <summary>Extrai o fator de vencimento (posições 6-9).</summary>
     /// <param name="codigoDeBarras">Código com 44 dígitos.</param>
+    /// <param name="referencia">Referência para desempatar os dois ciclos do fator (omitido = hoje).</param>
     /// <returns>Data de vencimento; <see langword="null"/> para fator 0000.</returns>
     /// <exception cref="ArgumentException">Código inválido.</exception>
-    public static DateOnly? LerVencimento(string codigoDeBarras)
+    public static DateOnly? LerVencimento(string codigoDeBarras, DateOnly? referencia = null)
     {
         Validar(codigoDeBarras);
         return FatorDeVencimento.ParaVencimento(
-            int.Parse(codigoDeBarras.Substring(5, 4), CultureInfo.InvariantCulture));
+            int.Parse(codigoDeBarras.Substring(5, 4), CultureInfo.InvariantCulture),
+            referencia);
     }
 
     /// <summary>Extrai o valor nominal (posições 10-19, 2 decimais).</summary>

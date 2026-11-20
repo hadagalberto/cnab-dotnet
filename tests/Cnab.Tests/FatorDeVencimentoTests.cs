@@ -62,11 +62,11 @@ public class FatorDeVencimentoTests
     [Fact]
     public void ParaVencimento_InverteOCalculoNoCicloOriginal()
     {
-        // Fatores de 1000 a 9999 existem nos dois ciclos: a inversão adota o
-        // ciclo original (data-base 07/10/1997), documentado aqui. As datas do
-        // ciclo novo só são alcançáveis pelo fator na via inversa quando não há
-        // colisão (nenhum fator do ciclo novo existe ainda como fator menor que
-        // o limite do ciclo original).
+        // Fatores de 1000 a 9999 existem nos dois ciclos. Os vetores históricos
+        // dos manuais são preservados quando a referência é explícita (2002):
+        // a inversão sem referência passou a escolher o ciclo mais próximo de
+        // hoje (revisão 2026-11-20, item 2), testada abaixo.
+        var referenciaHistorica = new DateOnly(2002, 5, 1);
         foreach (var (vencimento, fator) in new[]
         {
             (new DateOnly(2000, 7, 3), 1000),
@@ -75,12 +75,32 @@ public class FatorDeVencimentoTests
             (new DateOnly(2025, 2, 21), 9999),
         })
         {
-            Assert.Equal(vencimento, FatorDeVencimento.ParaVencimento(fator));
+            Assert.Equal(vencimento, FatorDeVencimento.ParaVencimento(fator, referenciaHistorica));
         }
 
         // A via direta cobre os dois ciclos: 22/02/2025 inicia o ciclo novo.
         Assert.Equal(1000, FatorDeVencimento.Calcular(new DateOnly(2025, 2, 22)));
         Assert.Equal(1667, FatorDeVencimento.Calcular(new DateOnly(2026, 12, 21)));
+    }
+
+    [Fact]
+    public void ParaVencimento_SemReferenciaEscolheOCicloMaisProximo()
+    {
+        // Tabela oficial (Caixa Anexo II; FEBRABAN FB-009/2023): 1667 é
+        // 01/05/2002 no ciclo original e 21/12/2026 no ciclo novo. Com
+        // referência em 2026, o ciclo novo é o correto; em 2002, o original.
+        Assert.Equal(new DateOnly(2026, 12, 21), FatorDeVencimento.ParaVencimento(1667, new DateOnly(2026, 11, 20)));
+        Assert.Equal(new DateOnly(2002, 5, 1), FatorDeVencimento.ParaVencimento(1667, new DateOnly(2002, 5, 1)));
+        Assert.Equal(new DateOnly(2025, 2, 21), FatorDeVencimento.ParaVencimento(9999, new DateOnly(2026, 11, 20)));
+    }
+
+    [Fact]
+    public void Calcular_VencimentoAlemDe13102049EhRejeitado()
+    {
+        // Fonte: tabela oficial — 13/10/2049 → 9999; o dia seguinte exigiria
+        // 10000 (5 posições), que não cabe no código de barras de 44 posições.
+        Assert.Equal(9999, FatorDeVencimento.Calcular(new DateOnly(2049, 10, 13)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => FatorDeVencimento.Calcular(new DateOnly(2049, 10, 14)));
     }
 
     [Fact]

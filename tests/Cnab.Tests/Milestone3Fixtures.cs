@@ -88,6 +88,25 @@ internal static class Milestone3Fixtures
         },
     };
 
+    /// <summary>
+    /// Nosso número no formato exigido pelo segmento P de cada banco. BB e
+    /// Santander recebem a base sem DV (o gerador aplica o DV do manual);
+    /// Sicredi/Sicoob/BTG usam vetores publicados ou 11 dígitos atribuídos.
+    /// </summary>
+    internal static string NossoNumero240(int codigoBanco, int numero)
+    {
+        var digitos = Math.Abs(numero).ToString("D8", CultureInfo.InvariantCulture);
+        return codigoBanco switch
+        {
+            1 => digitos[..7],
+            33 => digitos + digitos[..4],
+            208 => digitos + digitos[..3],
+            748 => "072000031", // vetor oficial Sicredi (8 + DV 1)
+            756 => "00000218", // vetor Sicoob (7 + DV 8)
+            _ => digitos,
+        };
+    }
+
     internal static Remessa240 Remessa240(Banco banco, string convenio = "1234") => new()
     {
         Banco = banco,
@@ -103,7 +122,7 @@ internal static class Milestone3Fixtures
             {
                 Cedente = Cedente(banco),
                 Numero = 1,
-                Titulos = [Titulo("00000002", banco.Codigo == 237 ? "19" : "109")],
+                Titulos = [Titulo(NossoNumero240(banco.Codigo, 2), banco.Codigo == 237 ? "19" : "109")],
             },
         ],
     };

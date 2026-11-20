@@ -96,7 +96,7 @@ public sealed record ValoresRetorno400
 /// <summary>Um registro de detalhe de um retorno CNAB 400.</summary>
 public sealed record ItemRetorno400
 {
-    /// <summary>Linha exatamente como lida do arquivo (garante round-trip byte-exato).</summary>
+    /// <summary>Linha resserializada a partir do registro tipado (round-trip byte-exato).</summary>
     public required string LinhaOriginal { get; init; }
 
     /// <summary>Identificação do registro (normalmente 1).</summary>
@@ -139,7 +139,7 @@ public sealed record CabecalhoRetorno400
     /// <summary>Número sequencial do arquivo.</summary>
     public int NumeroSequencialArquivo { get; init; }
 
-    /// <summary>Linha original, preservada para round-trip byte-exato.</summary>
+    /// <summary>Linha resserializada a partir do registro tipado (round-trip byte-exato).</summary>
     public required string LinhaOriginal { get; init; }
 }
 
@@ -155,7 +155,7 @@ public sealed record TrailerRetorno400
     /// <summary>Número sequencial final.</summary>
     public int NumeroSequencialArquivo { get; init; }
 
-    /// <summary>Linha original, preservada para round-trip byte-exato.</summary>
+    /// <summary>Linha resserializada a partir do registro tipado (round-trip byte-exato).</summary>
     public required string LinhaOriginal { get; init; }
 }
 

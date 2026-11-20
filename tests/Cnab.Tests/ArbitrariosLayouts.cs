@@ -186,7 +186,7 @@ public static class ArbitrariosLayouts
 
     private static Titulo CriarTitulo(int codigo, int numero, int centavos, DateOnly emissao) => new()
     {
-        NossoNumero = numero.ToString("D8", System.Globalization.CultureInfo.InvariantCulture),
+        NossoNumero = Milestone3Fixtures.NossoNumero240(codigo, numero),
         NumeroDocumento = "NF" + numero.ToString("D6", System.Globalization.CultureInfo.InvariantCulture),
         Especie = EspecieDocumento.DuplicataMercantilIndicacao,
         DataEmissao = emissao,

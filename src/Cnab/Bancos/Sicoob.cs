@@ -42,6 +42,32 @@ public static class Sicoob
     }
 
     /// <summary>
+    /// Valida o formato do nosso número gravado no segmento P: 7 dígitos de
+    /// sequencial + 1 DV (8 posições). Quando cooperativa e código do cliente
+    /// são informados, o DV é conferido com <see cref="CalcularDvNossoNumero"/>.
+    /// </summary>
+    /// <param name="nossoNumero">Nosso número com DV (8 dígitos).</param>
+    /// <param name="cooperativa">Cooperativa com 4 dígitos, quando disponível.</param>
+    /// <param name="codigoCliente">Código do cliente com 10 dígitos, quando disponível.</param>
+    /// <exception cref="ArgumentException">Formato ou DV inválidos.</exception>
+    public static void ValidarNossoNumero(
+        string nossoNumero,
+        string? cooperativa = null,
+        string? codigoCliente = null)
+    {
+        Exigir(nossoNumero, 8, nameof(nossoNumero));
+        if (cooperativa is not null && codigoCliente is not null)
+        {
+            var esperado = CalcularDvNossoNumero(cooperativa, codigoCliente, nossoNumero[..7]);
+            if (nossoNumero[7] - '0' != esperado)
+            {
+                throw new ArgumentException(
+                    $"DV do nosso número Sicoob inválido: esperado {esperado}.", nameof(nossoNumero));
+            }
+        }
+    }
+
+    /// <summary>
     /// DV do nosso número, módulo 11 com constante 3197: concatenar cooperativa
     /// (4) + código do cliente (10) + nosso número (7) completando com zeros à
     /// esquerda, alinhar a constante "3197" repetida da direita para a

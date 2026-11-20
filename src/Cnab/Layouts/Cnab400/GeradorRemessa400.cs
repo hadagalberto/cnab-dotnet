@@ -126,7 +126,7 @@ public static class GeradorRemessa400
         {
             RegistroCnab<HeaderRemessaBradesco400>.Escrever(new HeaderRemessaBradesco400
             {
-                CodigoEmpresa = remessa.CodigoBeneficiario,
+                CodigoEmpresa = long.Parse(Digitos(remessa.CodigoBeneficiario, 20, "Código da Empresa"), CultureInfo.InvariantCulture),
                 NomeEmpresa = remessa.Cedente.Nome,
                 DataGravacao = remessa.DataGeracao,
                 NumeroSequencialRemessa = remessa.NumeroRemessa,

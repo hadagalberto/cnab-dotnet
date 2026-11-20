@@ -254,7 +254,7 @@ public sealed record DetalheRemessaSicredi400
     public int DiasNegativacao { get; init; }
 
     /// <summary>Filler, posições 197-205, zeros.</summary>
-    [CampoCnab("Filler 197-205", 197, 9, TipoCampo.Filler)]
+    [CampoCnab("Filler 197-205", 197, 9, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Filler197A205 { get; init; } = "000000000";
 
     /// <summary>Valor do abatimento, posições 206-218 (2 casas decimais).</summary>
@@ -266,7 +266,7 @@ public sealed record DetalheRemessaSicredi400
     public int TipoInscricaoPagador { get; init; }
 
     /// <summary>Filler, posição 220, zero.</summary>
-    [CampoCnab("Filler 220", 220, 1, TipoCampo.Filler)]
+    [CampoCnab("Filler 220", 220, 1, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Filler220 { get; init; } = "0";
 
     /// <summary>CPF/CNPJ do pagador, posições 221-234.</summary>
@@ -286,7 +286,7 @@ public sealed record DetalheRemessaSicredi400
     public string CodigoPagadorCooperativa { get; init; } = string.Empty;
 
     /// <summary>Filler, posições 320-325, zeros.</summary>
-    [CampoCnab("Filler 320-325", 320, 6, TipoCampo.Filler)]
+    [CampoCnab("Filler 320-325", 320, 6, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Filler320A325 { get; init; } = "000000";
 
     /// <summary>Filler, posição 326, branco.</summary>
@@ -497,7 +497,7 @@ public sealed record DetalheRetornoSicredi400
     public decimal CustasProtesto { get; init; }
 
     /// <summary>Filler, posições 202-227, zeros.</summary>
-    [CampoCnab("Filler 202-227", 202, 26, TipoCampo.Filler)]
+    [CampoCnab("Filler 202-227", 202, 26, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Filler202A227 { get; init; } = "00000000000000000000000000";
 
     /// <summary>Abatimento concedido, posições 228-240 (2 casas decimais).</summary>

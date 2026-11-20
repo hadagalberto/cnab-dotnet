@@ -150,7 +150,12 @@ public class BoletoTests
     {
         const string codigo = "34196166700000123451101234567880057123457000";
         Assert.Equal(Bancos.Itau, CodigoDeBarras.LerBanco(codigo));
-        Assert.Equal(new DateOnly(2002, 5, 1), CodigoDeBarras.LerVencimento(codigo));
+        // Revisão 2026-11-20 (item 2): o fator 1667 pertence aos dois ciclos.
+        // Lido hoje, o ciclo mais próximo da referência é o novo (21/12/2026),
+        // não o vetor histórico do manual (01/05/2002). A data histórica segue
+        // disponível via referência explícita: LerVencimento(codigo, new DateOnly(2002, 5, 1)).
+        Assert.Equal(new DateOnly(2026, 12, 21), CodigoDeBarras.LerVencimento(codigo));
+        Assert.Equal(new DateOnly(2002, 5, 1), CodigoDeBarras.LerVencimento(codigo, new DateOnly(2002, 5, 1)));
         Assert.Equal(123.45m, CodigoDeBarras.LerValor(codigo));
         Assert.Equal("1101234567880057123457000", CodigoDeBarras.LerCampoLivre(codigo));
         Assert.True(CodigoDeBarras.ConferirDvGeral(codigo));

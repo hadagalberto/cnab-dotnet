@@ -38,7 +38,12 @@ public class Cnab240RemessaTests
     public void Caixa_CodigoBeneficiario_OcupaPosicoesDoManual()
     {
         var remessa = Cnab240Fixtures.RemessaCobranca(Bancos.Caixa);
-        remessa = remessa with { CodigoBeneficiario = "339578" };
+        var titulo = remessa.LotesCobranca[0].Titulos[0] with { NossoNumero = "123412345671" };
+        remessa = remessa with
+        {
+            CodigoBeneficiario = "339578",
+            LotesCobranca = [remessa.LotesCobranca[0] with { Titulos = [titulo] }],
+        };
         var linhas = GeradorRemessa240.GerarLinhas(remessa);
 
         // Header de arquivo: 33-52 uso exclusivo CAIXA (zeros), 59-65 código
@@ -59,7 +64,12 @@ public class Cnab240RemessaTests
     public void Santander_UsaLayoutProprioNosHeadersEPeriodoP()
     {
         var remessa = Cnab240Fixtures.RemessaCobranca(Bancos.Santander);
-        remessa = remessa with { Convenio = "000000000000001" };
+        var titulo = remessa.LotesCobranca[0].Titulos[0] with { NossoNumero = "123412345671" };
+        remessa = remessa with
+        {
+            Convenio = "000000000000001",
+            LotesCobranca = [remessa.LotesCobranca[0] with { Titulos = [titulo] }],
+        };
         var linhas = GeradorRemessa240.GerarLinhas(remessa);
 
         Assert.Equal("033", linhas[0].Substring(0, 3));
@@ -70,7 +80,9 @@ public class Cnab240RemessaTests
         Assert.Equal("030", linhas[1].Substring(13, 3));
         Assert.Equal("000000000000191", linhas[1].Substring(18, 15));
         Assert.Equal("000000000000001", linhas[1].Substring(53, 15));
-        Assert.Equal("0123412345671", linhas[2].Substring(44, 13));
+        // Revisão 2026-11-20 (item 7): o nosso número do Santander agora entra
+        // com o DV do manual v34 (12 dígitos + DV = 123412345671-4), não cru.
+        Assert.Equal("1234123456714", linhas[2].Substring(44, 13));
         Assert.Equal("0", linhas[2].Substring(224, 1));
     }
 

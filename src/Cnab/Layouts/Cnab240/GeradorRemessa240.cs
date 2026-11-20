@@ -2,6 +2,7 @@ namespace Cnab.Layouts.Cnab240;
 
 using System.Globalization;
 using Cnab.Arquivo;
+using Cnab.Bancos;
 using Cnab.Boleto;
 using Cnab.Layouts.Cnab240.Registros;
 using Cnab.Modelo;
@@ -40,6 +41,13 @@ public sealed record OpcoesGeracao240
 
     /// <summary>Câmara centralizadora (P001) por tipo de pagamento.</summary>
     public IReadOnlyDictionary<TipoPagamento, int> MapaCamara { get; init; } = MapaCamarasPadrao;
+
+    /// <summary>
+    /// Modalidade do nosso número SIGCB da CAIXA (posições 41-42 do segmento P):
+    /// "14" = título registrado com emissão pelo beneficiário (padrão), "11" =
+    /// emissão pela CAIXA. Manual SIGCB 67.118 v031, nota G069.
+    /// </summary>
+    public string ModalidadeCarteiraCaixa { get; init; } = "14";
 
     /// <summary>Classifica a carteira de um título para o trailer de lote de cobrança.</summary>
     public Func<Titulo, CarteiraCobranca240> ClassificarCarteira { get; init; } = static _ => CarteiraCobranca240.Simples;
@@ -363,6 +371,8 @@ public static class GeradorRemessa240
             Banco = remessa.Banco.Codigo,
             Lote = numeroLote,
             TipoRegistro = Codigos240.TrailerLote,
+            // G057: header de lote + detalhes + trailer de lote.
+            QuantidadeRegistros = sequencial + 2,
             QuantidadeSimples = Quantidade(contadores, CarteiraCobranca240.Simples),
             ValorSimples = Valor(contadores, CarteiraCobranca240.Simples),
             QuantidadeVinculada = Quantidade(contadores, CarteiraCobranca240.Vinculada),
@@ -372,8 +382,6 @@ public static class GeradorRemessa240
             QuantidadeDescontada = Quantidade(contadores, CarteiraCobranca240.Descontada),
             ValorDescontada = Valor(contadores, CarteiraCobranca240.Descontada),
             FillerInicial = string.Empty,
-            // O trailer de cobrança FEBRABAN não tem campo de quantidade total
-            // de registros: ele discrimina quantidades/valores por carteira.
             NumeroAvisoLancamento = string.Empty,
         });
     }
@@ -385,7 +393,9 @@ public static class GeradorRemessa240
         int numeroLote)
     {
         var conta = remessa.Cedente.Conta;
-        var primeiroTipo = lote.Pagamentos.Count > 0 ? lote.Pagamentos[0].Tipo : TipoPagamento.CreditoEmConta;
+        var primeiroTipo = lote.Pagamentos.Count > 0
+            ? TipoEfetivo(lote.Pagamentos[0])
+            : TipoPagamento.CreditoEmConta;
         var header = RegistroCnab<HeaderLotePagamento240>.Escrever(new HeaderLotePagamento240
         {
             Banco = remessa.Banco.Codigo,
@@ -415,7 +425,7 @@ public static class GeradorRemessa240
             pagamento.Validar();
             soma += pagamento.Valor;
             sequencial++;
-            switch (pagamento.Tipo)
+            switch (TipoEfetivo(pagamento))
             {
                 case TipoPagamento.BoletoCodigoBarras:
                     foreach (var linha in GerarBoleto(remessa, pagamento, numeroLote, sequencial))
@@ -454,9 +464,30 @@ public static class GeradorRemessa240
             }), perfil.AjustesTrailerLotePagamento);
     }
 
+    /// <summary>
+    /// O prefixo 8 identifica arrecadação mesmo quando o chamador marcou o
+    /// pagamento como boleto: o segmento correto é O, nunca J (que exigiria
+    /// banco/fator de vencimento inexistentes na arrecadação).
+    /// </summary>
+    private static TipoPagamento TipoEfetivo(Pagamento pagamento)
+    {
+        var digitos = new string([.. (pagamento.CodigoDeBarras ?? string.Empty).Where(char.IsAsciiDigit)]);
+        return Arrecadacao.EhArrecadacao(digitos)
+            ? TipoPagamento.TributoCodigoBarras
+            : pagamento.Tipo;
+    }
+
     private static IEnumerable<string> GerarBoleto(
         Remessa240 remessa, Pagamento pagamento, int lote, int sequencial)
     {
+        var digitosBoleto = new string([.. pagamento.CodigoDeBarras!.Where(char.IsAsciiDigit)]);
+        if (Arrecadacao.EhArrecadacao(digitosBoleto))
+        {
+            throw new ArgumentException(
+                "Arrecadação (prefixo 8) não pode ser paga como boleto: use TipoPagamento.TributoCodigoBarras.",
+                nameof(pagamento));
+        }
+
         var codigo = pagamento.CodigoDeBarras!.Length == LinhaDigitavel.TamanhoDigitos
             ? LinhaDigitavel.ParaCodigoDeBarras(pagamento.CodigoDeBarras)
             : pagamento.CodigoDeBarras;
@@ -496,18 +527,19 @@ public static class GeradorRemessa240
     private static SegmentoO240 MontarSegmentoO(
         Remessa240 remessa, Pagamento pagamento, int lote, int sequencial)
     {
-        var codigo = pagamento.CodigoDeBarras!.Length == LinhaDigitavel.TamanhoDigitos
-            ? LinhaDigitavel.ParaCodigoDeBarras(pagamento.CodigoDeBarras)
-            : pagamento.CodigoDeBarras;
+        // Segmento O (N001): código de barras de 44 posições. A linha de 48
+        // é convertida e tem todos os DVs conferidos; a arrecadação não tem
+        // fator de vencimento, então 92-99 fica zerada (não se inventa data).
+        var barras = Arrecadacao.Normalizar(pagamento.CodigoDeBarras!);
         return new SegmentoO240
         {
             Banco = remessa.Banco.Codigo,
             Lote = lote,
             TipoRegistro = Codigos240.Detalhe,
             Sequencial = sequencial,
-            CodigoBarras = codigo,
+            CodigoBarras = barras,
             NomeConcessionaria = pagamento.NomeFavorecido,
-            DataVencimento = CodigoDeBarras.LerVencimento(codigo),
+            DataVencimento = null,
             DataPagamento = pagamento.Data,
             ValorPagamento = pagamento.Valor,
             NumeroDocumentoEmpresa = pagamento.NumeroDocumento,
@@ -604,7 +636,14 @@ public static class GeradorRemessa240
         Remessa240 remessa, Titulo titulo, int numeroLote, int sequencial, int movimento)
     {
         var conta = remessa.Cedente.Conta;
-        var nosso = new string([.. titulo.NossoNumero.Where(char.IsAsciiDigit)]);
+        var nosso = SomenteDigitos(titulo.NossoNumero, "Nosso Número Santander");
+        var nossoComDv = nosso.Length switch
+        {
+            12 => Santander.ComporNossoNumero(nosso),
+            13 when Santander.CalcularDvNossoNumero(nosso[..12]) == nosso[12] - '0' => nosso,
+            _ => throw new ArgumentException(
+                "Nosso número Santander deve ter 12 dígitos (sem DV) ou 13 com DV válido.", "NossoNumero"),
+        };
         return new SegmentoPSantander240
         {
             Banco = remessa.Banco.Codigo,
@@ -616,7 +655,7 @@ public static class GeradorRemessa240
             DvAgencia = conta.DvAgencia ?? string.Empty,
             Conta = longo(conta.Conta, 9, "Conta"),
             DvConta = conta.DvConta ?? string.Empty,
-            NossoNumero = nosso.PadLeft(13, '0'),
+            NossoNumero = nossoComDv.PadLeft(13, '0'),
             Carteira = Carteira(titulo),
             FormaCadastramento = 1,
             TipoDocumento = "1",
@@ -749,12 +788,84 @@ public static class GeradorRemessa240
     {
         if (remessa.Banco.Codigo == 104)
         {
-            // SIGCB: 38-39 filler, 40 modalidade SINCO, 41-42 modalidade
-            // SIGCB, 43-57 identificação do título (15 posições).
-            return "  " + "0" + "00" + titulo.NossoNumero.PadLeft(15, '0');
+            // SIGCB 67.118 v031: 38-39 filler, 40 modalidade SINCO (fixo "0"),
+            // 41-42 modalidade SIGCB (G069: "14" beneficiário / "11" CAIXA),
+            // 43-57 identificação do título (15 posições).
+            var modalidade = remessa.Opcoes.ModalidadeCarteiraCaixa;
+            if (modalidade.Length != 2 || !modalidade.All(char.IsAsciiDigit))
+            {
+                throw new ArgumentException("Modalidade da carteira CAIXA deve ter 2 dígitos.", nameof(remessa));
+            }
+
+            return "  " + "0" + modalidade + titulo.NossoNumero.PadLeft(15, '0');
         }
 
-        return titulo.NossoNumero;
+        var nn = SomenteDigitos(titulo.NossoNumero, "Nosso Número");
+        return remessa.Banco.Codigo switch
+        {
+            1 => NossoNumeroBB(remessa, nn),
+            208 => Validar(nn, 11, "BTG", () => Btg.ValidarNossoNumero(nn)),
+            748 => Validar(nn, 9, "Sicredi", () => Sicredi.ValidarNossoNumero(nn)),
+            756 => Validar(nn, 8, "Sicoob", () => Sicoob.ValidarNossoNumero(nn)),
+            _ => titulo.NossoNumero,
+        };
+    }
+
+    /// <summary>
+    /// BB (Particularidades CNAB 240, campo 13.3P): convênio de 4 ou 6 posições
+    /// entra como prefixo e o DV é calculado pelo Anexo XI. Convênio de 7
+    /// posições usa 17 dígitos sem DV.
+    /// </summary>
+    private static string NossoNumeroBB(Remessa240 remessa, string nn)
+    {
+        var convenio = SomenteDigitos(remessa.Convenio, "Convênio BB");
+        return convenio.Length switch
+        {
+            4 when nn.Length == 7 => BancoDoBrasil.ComporNossoNumeroConvenio4(convenio, nn),
+            4 when nn.Length == 12 => ConferirNossoNumeroBB(convenio, nn, 11),
+            6 when nn.Length == 5 => BancoDoBrasil.ComporNossoNumeroConvenio6(convenio, nn),
+            6 when nn.Length == 12 => ConferirNossoNumeroBB(convenio, nn, 11),
+            7 when nn.Length == 10 => BancoDoBrasil.ComporNossoNumeroConvenio7(convenio, nn),
+            7 when nn.Length == 17 && nn.StartsWith(convenio, StringComparison.Ordinal) => nn,
+            _ => throw new ArgumentException(
+                $"Nosso número BB '{nn}' não é compatível com o convênio '{convenio}' "
+                    + "(4 posições + 7 sequenciais, 6 + 5, ou 7 + 10).", "NossoNumero"),
+        };
+    }
+
+    private static string ConferirNossoNumeroBB(string convenio, string nn, int tamanhoBase)
+    {
+        if (!nn.StartsWith(convenio, StringComparison.Ordinal)
+            || !string.Equals(nn[^1].ToString(), BancoDoBrasil.CalcularDvNossoNumero(nn[..tamanhoBase]), StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"DV ou prefixo do nosso número BB '{nn}' não confere com o convênio '{convenio}'.", "NossoNumero");
+        }
+
+        return nn;
+    }
+
+    private static string Validar(string nn, int tamanho, string banco, Action validarDv)
+    {
+        if (nn.Length != tamanho)
+        {
+            throw new ArgumentException(
+                $"Nosso número {banco} deve ter {tamanho} dígitos; recebidos {nn.Length}.", "NossoNumero");
+        }
+
+        validarDv();
+        return nn;
+    }
+
+    private static string SomenteDigitos(string valor, string nome)
+    {
+        var digitos = new string([.. valor.Where(char.IsAsciiDigit)]);
+        if (digitos.Length == 0)
+        {
+            throw new ArgumentException($"{nome} deve conter apenas dígitos.", nome);
+        }
+
+        return digitos;
     }
 
     private static string Insercao(DocumentoFiscal documento, int tamanho) =>
@@ -837,6 +948,20 @@ public static class GeradorRemessa240
             if (lote.Pagamentos.Count == 0)
             {
                 throw new InvalidOperationException("Lote de pagamento sem lançamentos.");
+            }
+
+            // G029 (forma de lançamento) é do lote: um único valor para todos
+            // os lançamentos. Misturar TED/Pix/boleto/tributo num mesmo lote
+            // produziria um header que não descreve os detalhes.
+            var formas = lote.Pagamentos
+                .Select(p => remessa.Opcoes.MapaFormaLancamento[TipoEfetivo(p)])
+                .Distinct()
+                .ToArray();
+            if (formas.Length > 1)
+            {
+                throw new ArgumentException(
+                    $"Lote {lote.Numero} mistura formas de lançamento ({string.Join(", ", formas)}); "
+                        + "crie um lote por forma ou por tipo de serviço.", nameof(remessa));
             }
         }
     }

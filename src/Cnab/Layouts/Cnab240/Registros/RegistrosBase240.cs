@@ -402,6 +402,14 @@ public sealed record TrailerLoteCobranca240
     [CampoCnab("Filler CNAB", 9, 9, TipoCampo.Filler)]
     public string FillerInicial { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Quantidade de registros do lote (G057), posições 18-23: contador
+    /// obrigatório, numérico, com header e trailer inclusive (FEBRABAN V10.9,
+    /// seção 2.2 — o mesmo G057 do trailer de pagamentos).
+    /// </summary>
+    [CampoCnab("Quantidade de Registros do Lote", 18, 6, TipoCampo.Numerico)]
+    public int QuantidadeRegistros { get; init; }
+
     /// <summary>Quantidade de títulos em cobrança simples, posições 24-29.</summary>
     [CampoCnab("Qtde. Títulos Cobrança Simples", 24, 6, TipoCampo.Numerico)]
     public int QuantidadeSimples { get; init; }

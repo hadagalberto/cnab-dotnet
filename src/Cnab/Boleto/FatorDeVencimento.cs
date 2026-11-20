@@ -46,12 +46,18 @@ public static class FatorDeVencimento
     /// <summary>Último vencimento do ciclo original (fator 9999).</summary>
     public static readonly DateOnly UltimoVencimentoCicloOriginal = new(2025, 2, 21);
 
+    /// <summary>Último vencimento do ciclo novo (fator 9999): 13/10/2049.</summary>
+    public static readonly DateOnly UltimoVencimentoCicloNovo = new(2049, 10, 13);
+
+    /// <summary>Maior fator representável em quatro posições (9999).</summary>
+    public const int FatorMaximo = 9999;
+
     /// <summary>
     /// Calcula o fator de vencimento de 4 dígitos.
     /// </summary>
     /// <param name="vencimento">Data de vencimento; <see langword="null"/> para títulos sem vencimento (fator 0000).</param>
     /// <returns>Fator entre 1000 e 9999, ou 0 quando não há vencimento.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Vencimento anterior à data-base original (07/10/1997).</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Vencimento fora da faixa 07/10/1997 a 13/10/2049.</exception>
     public static int Calcular(DateOnly? vencimento)
     {
         if (vencimento is null)
@@ -67,9 +73,18 @@ public static class FatorDeVencimento
                 "Vencimento anterior à data-base original 07/10/1997 não possui fator de vencimento.");
         }
 
-        return data >= NovaDataBase
+        var fator = data >= NovaDataBase
             ? 1000 + (data.DayNumber - NovaDataBase.DayNumber)
             : data.DayNumber - DataBaseOriginal.DayNumber;
+        if (fator > FatorMaximo)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(vencimento),
+                $"Vencimento posterior a {UltimoVencimentoCicloNovo:dd/MM/yyyy} exigiria fator de 5 dígitos; "
+                    + "o campo do código de barras aceita no máximo 9999.");
+        }
+
+        return fator;
     }
 
     /// <summary>
@@ -78,24 +93,33 @@ public static class FatorDeVencimento
     /// <see langword="null"/>.
     /// </summary>
     /// <param name="fator">Fator de vencimento (0 ou 1000 a 9999).</param>
-    /// <returns>Data de vencimento do fator, no ciclo em que ele cai.</returns>
+    /// <param name="referencia">
+    /// Data de referência para desempatar os dois ciclos que compartilham o
+    /// mesmo fator. Omitido, usa hoje. A escolha é a data mais próxima da
+    /// referência (regra publicada em tabelas oficiais e adotada por
+    /// validadores de linha digitável); empate prefere o ciclo original.
+    /// </param>
+    /// <returns>Data de vencimento do fator, no ciclo mais próximo da referência.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Fator fora do domínio 0/1000-9999.</exception>
-    public static DateOnly? ParaVencimento(int fator)
+    public static DateOnly? ParaVencimento(int fator, DateOnly? referencia = null)
     {
         if (fator == 0)
         {
             return null;
         }
 
-        if (fator is < 1000 or > 9999)
+        if (fator is < 1000 or > FatorMaximo)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(fator),
                 "Fator de vencimento deve ser 0 (sem vencimento) ou estar entre 1000 e 9999.");
         }
 
-        return fator <= UltimoVencimentoCicloOriginal.DayNumber - DataBaseOriginal.DayNumber
-            ? DateOnly.FromDayNumber(DataBaseOriginal.DayNumber + fator)
-            : DateOnly.FromDayNumber(NovaDataBase.DayNumber + (fator - 1000));
+        var cicloOriginal = DateOnly.FromDayNumber(DataBaseOriginal.DayNumber + fator);
+        var cicloNovo = DateOnly.FromDayNumber(NovaDataBase.DayNumber + (fator - 1000));
+        var referenciaDia = (referencia ?? DateOnly.FromDateTime(DateTime.Today)).DayNumber;
+        return Math.Abs(cicloOriginal.DayNumber - referenciaDia) <= Math.Abs(cicloNovo.DayNumber - referenciaDia)
+            ? cicloOriginal
+            : cicloNovo;
     }
 }

@@ -31,9 +31,12 @@ public sealed record HeaderRemessaBradesco400
     [CampoCnab("Literal Serviço", 12, 15, TipoCampo.Alfanumerico)]
     public string LiteralServico { get; init; } = Codigos400.LiteralCobranca;
 
-    /// <summary>Código da empresa (cedente), posições 27-46.</summary>
-    [CampoCnab("Código da Empresa", 27, 20, TipoCampo.Alfanumerico)]
-    public string CodigoEmpresa { get; init; } = string.Empty;
+    /// <summary>
+    /// Código da empresa (cedente), posições 27-46: campo numérico 9(20)
+    /// alinhado à direita com zeros à esquerda (manual 4008-524-0121 v17).
+    /// </summary>
+    [CampoCnab("Código da Empresa", 27, 20, TipoCampo.Numerico)]
+    public long CodigoEmpresa { get; init; }
 
     /// <summary>Nome da empresa, posições 47-76.</summary>
     [CampoCnab("Nome da Empresa", 47, 30, TipoCampo.Alfanumerico)]
@@ -104,7 +107,7 @@ public sealed record DetalheRemessaBradesco400
     public string DvContaPagador { get; init; } = string.Empty;
 
     /// <summary>Zero fixo, posição 21.</summary>
-    [CampoCnab("Zero Fixo 21", 21, 1, TipoCampo.Filler)]
+    [CampoCnab("Zero Fixo 21", 21, 1, TipoCampo.Filler, ConteudoFiller = "0")]
     public string ZeroFixo21 { get; init; } = "0";
 
     /// <summary>Carteira, posições 22-24.</summary>
@@ -386,9 +389,9 @@ public sealed record HeaderRetornoBradesco400
     [CampoCnab("Literal Serviço", 12, 15, TipoCampo.Alfanumerico)]
     public string LiteralServico { get; init; } = Codigos400.LiteralCobranca;
 
-    /// <summary>Código da empresa, posições 27-46.</summary>
-    [CampoCnab("Código da Empresa", 27, 20, TipoCampo.Alfanumerico)]
-    public string CodigoEmpresa { get; init; } = string.Empty;
+    /// <summary>Código da empresa, posições 27-46, numérico 9(20) com zeros à esquerda.</summary>
+    [CampoCnab("Código da Empresa", 27, 20, TipoCampo.Numerico)]
+    public long CodigoEmpresa { get; init; }
 
     /// <summary>Nome da empresa, posições 47-76.</summary>
     [CampoCnab("Nome da Empresa", 47, 30, TipoCampo.Alfanumerico)]
@@ -463,7 +466,7 @@ public sealed record DetalheRetornoBradesco400
     public string ControleParticipante { get; init; } = string.Empty;
 
     /// <summary>Posições 63-70, zeros.</summary>
-    [CampoCnab("Zeros 63-70", 63, 8, TipoCampo.Filler)]
+    [CampoCnab("Zeros 63-70", 63, 8, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros63A70 { get; init; } = "00000000";
 
     /// <summary>Nosso número, posições 71-82.</summary>

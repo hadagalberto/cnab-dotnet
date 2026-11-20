@@ -401,3 +401,19 @@ com regressões em `HostileInputTests`:
   de construir `TimeOnly`.
 - `validate` exige trailer de arquivo na última linha de uma remessa.
 
+## Revisão independente (2026-11-20) — fontes adicionais
+
+| Documento | Versão | URL | Regras confirmadas nesta revisão |
+| --- | --- | --- | --- |
+| FEBRABAN, *Layout Padrão de Arrecadação/Recebimento com Utilização do Código de Barras* | v07 (01/03/2023) e v08 (11/05/2026) | https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20-%20C%C3%B3digo%20de%20Barras%20-%20Vers%C3%A3o%207%20-%2001_03_2023_mn.pdf e https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20-%20C%C3%B3digo%20de%20Barras%20-%20Vers%C3%A3o%208%20-%2011_05_2026.pdf | Produto `8` na posição 1; segmento na 2; identificador de valor 6/7 (módulo 10) ou 8/9 (módulo 11) na 3; DV geral na 4 (base = posições 1-3 + 5-44); valor 11 posições em 5-15; linha digitável de 48 dígitos = quatro blocos de 11 + DV módulo 10. Regra do módulo 11: resto 0/1 → DV 0, resto 10 → DV 1. |
+| CAIXA, *Manual de Leiaute de Arquivo Eletrônico CNAB 240 — SIGCB* | 67.118 v031 | https://www.caixa.gov.br/Downloads/cobranca-caixa/Manual_de_Leiaute_de_Arquivo_Eletronico_CNAB_240.pdf | Segmento P: posição 40 modalidade SINCO (`0`); 41-42 modalidade SIGCB (`14` = registrado/emissão beneficiário, `11` = emissão CAIXA), nota G069; 43-57 identificação do título (15). Revisão da modalidade antes fixa em `00`. |
+| FEBRABAN, *Layout Padrão CNAB 240 Posições* | V10.9/V10.11 | (F1/F3 acima) | G057 "Quantidade de registros do lote", posições 18-23 do trailer de lote (cobrança e pagamentos), numérico obrigatório. |
+
+Correções de rounds-trip: as leituras de retorno 400/240 passaram a resserializar
+os registros tipados em vez de devolver `LinhaOriginal`. O golden
+`tests/Cnab.Tests/Golden/001_cobranca_240.ret` foi escrito à mão por posições,
+sem uso do escritor da biblioteca. Campos "Zeros" dos manuais Itaú/Bradesco/
+Sicredi/Inter passaram a declarar `ConteudoFiller = "0"` no atributo — o valor
+padrão da propriedade não era usado pelo motor de escrita. Relatório completo:
+`docs/REVIEW-FIXES.md`.
+

@@ -13,9 +13,13 @@ public class Cnab240RetornoBancosAdicionaisTests
     {
         var header = Milestone3Fixtures.NovaLinha240()
             .Por(1, $"{codigoBanco:000}")
+            .Por(4, "0000") // G002: header de arquivo usa lote 0000
             .Por(8, "0")
             .Por(18, "2")
             .Por(19, "00000000000191")
+            .Por(53, "00000").Por(59, "000000000000")
+            .Por(152, "000000") // HoraGeracao numérica (G017)
+            .Por(158, "000000") // NSA (G018)
             .Por(73, "EMPRESA TESTE LTDA")
             .Por(103, "BANCO TESTE")
             .Por(143, "2")
@@ -32,9 +36,11 @@ public class Cnab240RetornoBancosAdicionaisTests
             .Por(14, "060")
             .Por(18, "2")
             .Por(19, "00000000000191")
+            .Por(54, "00000").Por(60, "000000000000")
             .Por(74, "EMPRESA TESTE LTDA")
             .Por(184, "00000001")
             .Por(192, "20092026")
+            .Por(200, "00000000") // DataCredito opcional zerada na remessa/retorno
             .ToString();
         var t = RegistroCnab<SegmentoT240>.Escrever(new SegmentoT240
         {
@@ -156,13 +162,17 @@ public class Cnab240RetornoBancosAdicionaisTests
         var linhas = new[]
         {
             Milestone3Fixtures.NovaLinha240()
-                .Por(1, "077").Por(8, "0").Por(18, "2").Por(19, "00000000000191")
+                .Por(1, "077").Por(4, "0000").Por(8, "0").Por(18, "2").Por(19, "00000000000191")
+                .Por(53, "00000").Por(59, "000000000000")
+                .Por(152, "000000").Por(158, "000000")
                 .Por(73, "EMPRESA TESTE LTDA").Por(103, "BANCO INTER")
                 .Por(143, "2").Por(144, "20092026").Por(164, "107").Por(167, "01600").ToString(),
             Milestone3Fixtures.NovaLinha240()
                 .Por(1, "077").Por(4, "0001").Por(8, "1").Por(9, "C").Por(10, "20")
                 .Por(12, "41").Por(14, "046").Por(18, "2").Por(19, "00000000000191")
-                .Por(74, "EMPRESA TESTE LTDA").Por(192, "20092026").ToString(),
+                .Por(53, "00000").Por(59, "000000000000")
+                .Por(74, "EMPRESA TESTE LTDA").Por(173, "00000").Por(192, "20092026")
+                .Por(213, "00000").Por(223, "00").ToString(),
             Milestone3Fixtures.NovaLinha240()
                 .Por(1, "077").Por(4, "0001").Por(8, "3").Por(9, "00001")
                 .Por(14, "A").Por(231, "PA").ToString(),

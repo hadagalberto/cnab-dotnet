@@ -21,9 +21,9 @@ internal static class Cnab240Fixtures
         },
     };
 
-    internal static Titulo Titulo() => new()
+    internal static Titulo Titulo(int codigoBanco = 1) => new()
     {
-        NossoNumero = "123412345671",
+        NossoNumero = Milestone3Fixtures.NossoNumero240(codigoBanco, 2),
         NumeroDocumento = "NF000001",
         Especie = EspecieDocumento.DuplicataMercantilIndicacao,
         DataEmissao = new DateOnly(2026, 11, 20),
@@ -45,11 +45,11 @@ internal static class Cnab240Fixtures
         },
     };
 
-    internal static LoteCobranca LoteCobranca(Cedente cedente) => new()
+    internal static LoteCobranca LoteCobranca(Cedente cedente, int codigoBanco = 1) => new()
     {
         Cedente = cedente,
         Numero = 1,
-        Titulos = [Titulo()],
+        Titulos = [Titulo(codigoBanco)],
     };
 
     internal static Remessa240 RemessaCobranca(Banco banco, string convenio = "1234") => new()
@@ -60,7 +60,7 @@ internal static class Cnab240Fixtures
         DataGeracao = new DateOnly(2026, 11, 20),
         HoraGeracao = new TimeOnly(10, 15, 30),
         Convenio = convenio,
-        LotesCobranca = [LoteCobranca(Cedente(banco))],
+        LotesCobranca = [LoteCobranca(Cedente(banco), banco.Codigo)],
     };
 
     internal static LotePagamento LoteTed(Cedente pagadora) => new()

@@ -55,6 +55,35 @@ public static class Sicredi
     }
 
     /// <summary>
+    /// Valida o formato do nosso número gravado no segmento P: 8 dígitos
+    /// (ano + byte + sequencial) + 1 DV (9 posições). Quando cooperativa, posto
+    /// e beneficiário são informados, o DV é conferido com
+    /// <see cref="CalcularDvNossoNumero"/>.
+    /// </summary>
+    /// <param name="nossoNumero">Nosso número com DV (9 dígitos).</param>
+    /// <param name="cooperativa">Cooperativa com 4 dígitos, quando disponível.</param>
+    /// <param name="posto">Posto com 2 dígitos, quando disponível.</param>
+    /// <param name="codigoBeneficiario">Beneficiário com 5 dígitos, quando disponível.</param>
+    /// <exception cref="ArgumentException">Formato ou DV inválidos.</exception>
+    public static void ValidarNossoNumero(
+        string nossoNumero,
+        string? cooperativa = null,
+        string? posto = null,
+        string? codigoBeneficiario = null)
+    {
+        Exigir(nossoNumero, 9, nameof(nossoNumero));
+        if (cooperativa is not null && posto is not null && codigoBeneficiario is not null)
+        {
+            var esperado = CalcularDvNossoNumero(cooperativa, posto, codigoBeneficiario, nossoNumero[..8]);
+            if (nossoNumero[8] - '0' != esperado)
+            {
+                throw new ArgumentException(
+                    $"DV do nosso número Sicredi inválido: esperado {esperado}.", nameof(nossoNumero));
+            }
+        }
+    }
+
+    /// <summary>
     /// DV do nosso número, módulo 11 com pesos 2 a 9: base = cooperativa (4) +
     /// posto (2) + beneficiário (5) + nosso número sem DV (8: ano + byte +
     /// sequencial). "O dígito verificador será 11 - resto; se o resultado da

@@ -7,6 +7,26 @@ e o projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+### Corrigido (revisão independente 2026-11-20)
+
+- G057 no trailer de lote de cobrança 240 (posições 18-23) e comentário
+  incorreto sobre sua inexistência.
+- Inversão do fator de vencimento: desempate dos dois ciclos por data de
+  referência (padrão: hoje); segmento J 92-99 passa a usar o ciclo recente.
+- Fator acima de 9999 (vencimento após 13/10/2049) agora é rejeitado.
+- Arrecadação (prefixo 8): linha digitável de 48 posições, DVs módulo 10/11,
+  segmento O e valor de 11 posições; boleto com prefixo 8 é rejeitado.
+- Lotes de pagamento com formas de lançamento misturadas são rejeitados.
+- Campos documentados como "Zeros" nos layouts Itaú/Bradesco/Sicredi/Inter 400
+  passam a ser gravados com zeros (causa raiz: `ConteudoFiller` do atributo).
+- Código da empresa do Bradesco 400 é numérico 9(20), zero-padded.
+- Nosso número do segmento P: convênio + DV (BB) e DV (Santander); validação
+  para BTG, Sicredi e Sicoob.
+- Modalidade SIGCB da CAIXA no segmento P passa de `00` fixo para `14`
+  (registrado/emissão beneficiário), configurável nas opções.
+- Retorno 400/240 resserializa registros tipados; golden 240 `.ret` escrito à
+  mão e adicionado. Detalhes em `docs/REVIEW-FIXES.md`.
+
 ### Adicionado (marco 1)
 
 - Scaffold da solução: biblioteca `Cnab` multi-alvo (`net8.0;net10.0`),

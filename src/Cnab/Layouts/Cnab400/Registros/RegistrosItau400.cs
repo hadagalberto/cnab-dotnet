@@ -35,7 +35,7 @@ public sealed record HeaderRemessaItau400
     public int Agencia { get; init; }
 
     /// <summary>Posições 31-32, fixo "00".</summary>
-    [CampoCnab("Zeros 31-32", 31, 2, TipoCampo.Filler)]
+    [CampoCnab("Zeros 31-32", 31, 2, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros31A32 { get; init; } = "00";
 
     /// <summary>Conta corrente da empresa, posições 33-37.</summary>
@@ -99,7 +99,7 @@ public sealed record DetalheRemessaItau400
     public int Agencia { get; init; }
 
     /// <summary>Posições 22-23, fixo "00".</summary>
-    [CampoCnab("Zeros 22-23", 22, 2, TipoCampo.Filler)]
+    [CampoCnab("Zeros 22-23", 22, 2, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros22A23 { get; init; } = "00";
 
     /// <summary>Conta corrente da empresa, posições 24-28.</summary>
@@ -345,7 +345,7 @@ public sealed record HeaderRetornoItau400
     public int Agencia { get; init; }
 
     /// <summary>Posições 31-32, fixo "00".</summary>
-    [CampoCnab("Zeros 31-32", 31, 2, TipoCampo.Filler)]
+    [CampoCnab("Zeros 31-32", 31, 2, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros31A32 { get; init; } = "00";
 
     /// <summary>Conta, posições 33-37.</summary>
@@ -426,7 +426,7 @@ public sealed record DetalheRetornoItau400
     public int Agencia { get; init; }
 
     /// <summary>Posições 22-23, fixo "00".</summary>
-    [CampoCnab("Zeros 22-23", 22, 2, TipoCampo.Filler)]
+    [CampoCnab("Zeros 22-23", 22, 2, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros22A23 { get; init; } = "00";
 
     /// <summary>Conta, posições 24-28.</summary>

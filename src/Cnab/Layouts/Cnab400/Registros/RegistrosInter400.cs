@@ -395,7 +395,7 @@ public sealed record DetalheRetornoInter400
     public string NumeroInscricaoEmpresa { get; init; } = string.Empty;
 
     /// <summary>Posições 18-20, zeros.</summary>
-    [CampoCnab("Zeros 18-20", 18, 3, TipoCampo.Filler)]
+    [CampoCnab("Zeros 18-20", 18, 3, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros18A20 { get; init; } = "000";
 
     /// <summary>Carteira, posições 21-23.</summary>
@@ -415,7 +415,7 @@ public sealed record DetalheRetornoInter400
     public string ControleParticipante { get; init; } = string.Empty;
 
     /// <summary>Posições 63-70, zeros.</summary>
-    [CampoCnab("Zeros 63-70", 63, 8, TipoCampo.Filler)]
+    [CampoCnab("Zeros 63-70", 63, 8, TipoCampo.Filler, ConteudoFiller = "0")]
     public string Zeros63A70 { get; init; } = "00000000";
 
     /// <summary>Nosso número, posições 71-81.</summary>

@@ -29,7 +29,7 @@ public static class LeitorRetorno400
 
         ValidarTamanhos(linhas);
         var emissor = banco ?? DetectarBanco(linhas[0]);
-        var cabecalho = LerCabecalho(linhas[0], emissor) with { LinhaOriginal = linhas[0] };
+        var cabecalho = LerCabecalho(linhas[0], emissor);
         var itens = new List<ItemRetorno400>();
         for (var i = 1; i < linhas.Count - 1; i++)
         {
@@ -37,11 +37,11 @@ public static class LeitorRetorno400
             var tipo = TipoRegistro(linha, i + 1);
             if (tipo is Codigos400.Detalhe or Codigos400.Mensagem)
             {
-                itens.Add(LerDetalhe(linha, emissor, i + 1) with { LinhaOriginal = linha });
+                itens.Add(LerDetalhe(linha, emissor, i + 1));
             }
         }
 
-        var trailer = LerTrailer(linhas[^1], emissor) with { LinhaOriginal = linhas[^1] };
+        var trailer = LerTrailer(linhas[^1], emissor);
         return new Retorno400
         {
             Banco = emissor,
@@ -51,9 +51,13 @@ public static class LeitorRetorno400
         };
     }
 
-    /// <summary>Reescreve o retorno parseado em linhas de 400 posições.</summary>
+    /// <summary>
+    /// Reescreve o retorno parseado em linhas de 400 posições a partir dos
+    /// registros tipados — não devolve a linha original (isso tornaria o
+    /// round-trip circular e esconderia campos mal preenchidos).
+    /// </summary>
     /// <param name="retorno">Retorno parseado.</param>
-    /// <returns>Linhas sem delimitadores, byte-idênticas às linhas lidas.</returns>
+    /// <returns>Linhas sem delimitadores, byte-idênticas às linhas lidas quando o arquivo está correto.</returns>
     public static IReadOnlyList<string> EscreverLinhas(Retorno400 retorno)
     {
         ArgumentNullException.ThrowIfNull(retorno);

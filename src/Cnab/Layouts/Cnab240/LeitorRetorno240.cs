@@ -189,24 +189,20 @@ public static class LeitorRetorno240
     }
 
     /// <summary>
-    /// Reescreve um retorno parseado em linhas de 240 posições. Os cabeçalhos e
-    /// trailers são resserializados a partir dos registros tipados; os
-    /// segmentos de detalhe são copiados integralmente. Base para testes de
-    /// round-trip byte-exato.
+    /// Reescreve um retorno parseado em linhas de 240 posições a partir dos
+    /// registros tipados (cabeçalhos, trailers e segmentos T/U). Segmentos de
+    /// pagamento ainda não tipados no modelo são copiados da linha original.
+    /// A reescrita tipada evita round-trip circular.
     /// </summary>
     /// <param name="retorno">Retorno parseado.</param>
     /// <returns>Linhas sem delimitadores.</returns>
     public static IReadOnlyList<string> EscreverLinhas(Retorno240 retorno)
     {
         ArgumentNullException.ThrowIfNull(retorno);
-        var linhas = new List<string> { retorno.LinhaHeaderArquivo ?? RegistroCnab<HeaderArquivo240>.Escrever(retorno.HeaderArquivo) };
+        var linhas = new List<string> { RegistroCnab<HeaderArquivo240>.Escrever(retorno.HeaderArquivo) };
         foreach (var lote in retorno.Lotes)
         {
-            if (lote.LinhaHeader is not null)
-            {
-                linhas.Add(lote.LinhaHeader);
-            }
-            else if (lote.HeaderCobranca is not null)
+            if (lote.HeaderCobranca is not null)
             {
                 linhas.Add(RegistroCnab<HeaderLoteCobranca240>.Escrever(lote.HeaderCobranca));
             }
@@ -217,6 +213,17 @@ public static class LeitorRetorno240
 
             foreach (var item in lote.Itens)
             {
+                if (item.Titulo is not null)
+                {
+                    linhas.Add(RegistroCnab<SegmentoT240>.Escrever(item.Titulo));
+                    if (item.Valores is not null)
+                    {
+                        linhas.Add(RegistroCnab<SegmentoU240>.Escrever(item.Valores));
+                    }
+
+                    continue;
+                }
+
                 linhas.Add(item.LinhaOriginal);
                 if (item.LinhaValores is not null)
                 {
@@ -224,11 +231,7 @@ public static class LeitorRetorno240
                 }
             }
 
-            if (lote.LinhaTrailer is not null)
-            {
-                linhas.Add(lote.LinhaTrailer);
-            }
-            else if (lote.TrailerCobranca is not null)
+            if (lote.TrailerCobranca is not null)
             {
                 linhas.Add(RegistroCnab<TrailerLoteCobranca240>.Escrever(lote.TrailerCobranca));
             }
@@ -238,7 +241,7 @@ public static class LeitorRetorno240
             }
         }
 
-        linhas.Add(retorno.LinhaTrailerArquivo ?? RegistroCnab<TrailerArquivo240>.Escrever(retorno.TrailerArquivo));
+        linhas.Add(RegistroCnab<TrailerArquivo240>.Escrever(retorno.TrailerArquivo));
         return linhas;
     }
 
