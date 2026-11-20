@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- SPEC: .NET 8 and .NET 10 multi-target. netstandard2.0 is not targeted
+         because the public API uses DateOnly/TimeSpan types whose netstandard2.0
+         shims would force a worse public surface (SPEC allows skipping it when
+         it would hurt the API). -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Description>Biblioteca Cnab.NET: geração e leitura de arquivos CNAB (240/400), cobrança e pagamentos.</Description>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Cnab.Benchmarks/Cnab.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Cnab/Cnab.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cnab.Tests/Cnab.Tests.csproj" />
+  </Folder>
+</Solution>

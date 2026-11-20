@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <!-- C# latest across the solution. -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Production bar: warnings are errors, analyzers on. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Shared package metadata (kept local; SPEC forbids publishing). -->
+    <Authors>Hadagalberto Junior</Authors>
+    <Company>Hadagalberto Junior</Company>
+    <Copyright>Copyright (c) 2026 Hadagalberto Junior</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://example.invalid/cnab-dotnet</RepositoryUrl>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

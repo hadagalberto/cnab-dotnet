@@ -1,1 +1,33 @@
+# Build artifacts
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+artifacts/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# Test results
+TestResults/
+*.received.txt
+coverage/
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# NCrunch
+*.ncrunch*
+_NCrunch_*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local research scratch (never commit)
+.tmp-research/
+
+# opencode harness config (pre-existing ignore)
 opencode.json
