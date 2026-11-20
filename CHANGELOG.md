@@ -42,3 +42,25 @@ e o projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   tributo) e lotes com totais de trailer calculados (`Cnab.Modelo`).
 - Registro das fontes oficiais (nome, versão, URL, regras capturadas e
   pendências) em `docs/layouts.md`.
+
+### Adicionado (marco 3)
+
+- Remessa e retorno CNAB 240 para Bradesco (237), Itaú (341), Sicredi (748) e
+  BTG (208), com perfis em `PerfilBanco240` e ajustes dinâmicos documentados
+  em `AjustesBanco240` (DAC do Itaú, decomposição do nosso número do
+  Bradesco, agência sem DV do Sicredi e valores fixos do BTG).
+- Remessa de pagamentos CNAB 240 do Inter (077) com versão 107/046 e agência
+  única 00001/DV 9; tabela própria de ocorrências de retorno (231-240).
+- Motor CNAB 400 (`Cnab.Layouts.Cnab400`): registros declarativos de 400
+  posições, gerador de remessa, leitor de retorno, modelos tipados e tabelas
+  de ocorrências/motivos por banco.
+- Remessa e retorno CNAB 400 para Itaú, Bradesco, Sicredi e Inter, incluindo
+  valores, tarifas, datas de ocorrência/crédito e tabelas completas de
+  ocorrências e motivos extraídas dos manuais oficiais.
+- Round-trip byte-exato de retornos 240/400 preservando as linhas originais
+  dos cabeçalhos, detalhes e trailers.
+- Golden files por banco/layout em `tests/Cnab.Tests/Golden/` e testes
+  `GoldenFilesMilestone3Tests` comparando byte a byte gerador/leitor.
+- Registro integral das fontes do marco 3 (manuais I1/I2, B3/B4/B1', S3/S4,
+  IN1/IN2, T1/T2 e F4) com versões, URLs, posições e desvios em
+  `docs/layouts.md`.

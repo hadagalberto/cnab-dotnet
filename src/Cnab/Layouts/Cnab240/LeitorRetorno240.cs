@@ -35,11 +35,23 @@ public sealed record ItemRetorno240
 
     /// <summary>Ocorrências do pagador (A001, posições 154-157 do U).</summary>
     public IReadOnlyList<string> OcorrenciasPagador { get; init; } = [];
+
+    /// <summary>
+    /// Ocorrências de retorno de pagamentos (posições 231-240 dos segmentos
+    /// A/B/J/O). No Inter, esta é a tabela G059 própria do banco.
+    /// </summary>
+    public IReadOnlyList<OcorrenciaRetorno> OcorrenciasPagamento { get; init; } = [];
 }
 
 /// <summary>Lote de retorno com seus itens e trailers.</summary>
 public sealed record LoteRetorno240
 {
+    /// <summary>Linha original do header de lote, preservada para round-trip byte-exato.</summary>
+    public string? LinhaHeader { get; init; }
+
+    /// <summary>Linha original do trailer de lote, preservada para round-trip byte-exato.</summary>
+    public string? LinhaTrailer { get; init; }
+
     /// <summary>Header de lote de cobrança (quando o lote é de cobrança).</summary>
     public HeaderLoteCobranca240? HeaderCobranca { get; init; }
 
@@ -64,6 +76,12 @@ public sealed record Retorno240
 
     /// <summary>Header de arquivo.</summary>
     public required HeaderArquivo240 HeaderArquivo { get; init; }
+
+    /// <summary>Linha original do header de arquivo, preservada para round-trip byte-exato.</summary>
+    public string? LinhaHeaderArquivo { get; init; }
+
+    /// <summary>Linha original do trailer de arquivo, preservada para round-trip byte-exato.</summary>
+    public string? LinhaTrailerArquivo { get; init; }
 
     /// <summary>Lotes do arquivo.</summary>
     public required IReadOnlyList<LoteRetorno240> Lotes { get; init; }
@@ -124,7 +142,7 @@ public static class LeitorRetorno240
             switch (tipo)
             {
                 case Codigos240.HeaderLote:
-                    loteAtual = NovoLote(linha, numeroLinha, emissor, perfil);
+                    loteAtual = NovoLote(linha, numeroLinha, emissor, perfil) with { LinhaHeader = linha };
                     lotes.Add(loteAtual);
                     break;
                 case Codigos240.Detalhe:
@@ -142,6 +160,7 @@ public static class LeitorRetorno240
                     }
 
                     FecharLote(loteAtual, linha, numeroLinha);
+                    lotes[^1] = loteAtual with { LinhaTrailer = linha };
                     break;
                 case Codigos240.TrailerArquivo:
                     trailerArquivo = RegistroCnab<TrailerArquivo240>.Ler(linha, numeroLinha);
@@ -161,8 +180,10 @@ public static class LeitorRetorno240
         {
             Banco = emissor,
             HeaderArquivo = header,
+            LinhaHeaderArquivo = linhas[0],
             Lotes = lotes,
             TrailerArquivo = trailerArquivo,
+            LinhaTrailerArquivo = trailerArquivo is null ? null : linhas[^1],
             Perfil = perfil,
         };
     }
@@ -178,10 +199,14 @@ public static class LeitorRetorno240
     public static IReadOnlyList<string> EscreverLinhas(Retorno240 retorno)
     {
         ArgumentNullException.ThrowIfNull(retorno);
-        var linhas = new List<string> { RegistroCnab<HeaderArquivo240>.Escrever(retorno.HeaderArquivo) };
+        var linhas = new List<string> { retorno.LinhaHeaderArquivo ?? RegistroCnab<HeaderArquivo240>.Escrever(retorno.HeaderArquivo) };
         foreach (var lote in retorno.Lotes)
         {
-            if (lote.HeaderCobranca is not null)
+            if (lote.LinhaHeader is not null)
+            {
+                linhas.Add(lote.LinhaHeader);
+            }
+            else if (lote.HeaderCobranca is not null)
             {
                 linhas.Add(RegistroCnab<HeaderLoteCobranca240>.Escrever(lote.HeaderCobranca));
             }
@@ -199,7 +224,11 @@ public static class LeitorRetorno240
                 }
             }
 
-            if (lote.TrailerCobranca is not null)
+            if (lote.LinhaTrailer is not null)
+            {
+                linhas.Add(lote.LinhaTrailer);
+            }
+            else if (lote.TrailerCobranca is not null)
             {
                 linhas.Add(RegistroCnab<TrailerLoteCobranca240>.Escrever(lote.TrailerCobranca));
             }
@@ -209,7 +238,7 @@ public static class LeitorRetorno240
             }
         }
 
-        linhas.Add(RegistroCnab<TrailerArquivo240>.Escrever(retorno.TrailerArquivo));
+        linhas.Add(retorno.LinhaTrailerArquivo ?? RegistroCnab<TrailerArquivo240>.Escrever(retorno.TrailerArquivo));
         return linhas;
     }
 
@@ -275,7 +304,7 @@ public static class LeitorRetorno240
             {
                 Titulo = titulo,
                 Ocorrencia = TabelasOcorrencias.Obter(banco, codigo),
-                Motivos = InterpretarMotivos(titulo.MotivoOcorrencia),
+                Motivos = InterpretarMotivos(titulo.MotivoOcorrencia, banco),
             });
             return;
         }
@@ -306,7 +335,47 @@ public static class LeitorRetorno240
             return;
         }
 
-        lote.Itens.Add(new ItemRetorno240(linha));
+        lote.Itens.Add(new ItemRetorno240(linha)
+        {
+            OcorrenciasPagamento = InterpretarOcorrenciasPagamento(linha, banco),
+        });
+    }
+
+    private static IReadOnlyList<OcorrenciaRetorno> InterpretarOcorrenciasPagamento(string linha, Banco banco)
+    {
+        if (linha.Length < 240)
+        {
+            return [];
+        }
+
+        var codigos = linha.Substring(230, 10);
+        var ocorrencias = new List<OcorrenciaRetorno>();
+        for (var i = 0; i + 1 < codigos.Length; i += 2)
+        {
+            var codigo = codigos.Substring(i, 2).Trim();
+            if (codigo.Length == 0 || codigo == "00" || !codigo.All(char.IsLetterOrDigit))
+            {
+                continue;
+            }
+
+            try
+            {
+                ocorrencias.Add(TabelasOcorrencias.Obter(banco, codigo));
+            }
+            catch (ArgumentException)
+            {
+                try
+                {
+                    ocorrencias.Add(TabelasOcorrencias.ObterPagamento(codigo));
+                }
+                catch (ArgumentException)
+                {
+                    // Código não publicado nas fontes consultadas: não inventar.
+                }
+            }
+        }
+
+        return ocorrencias;
     }
 
     private static void FecharLote(LoteRetorno240 lote, string linha, int numeroLinha)
@@ -321,7 +390,7 @@ public static class LeitorRetorno240
         }
     }
 
-    private static IReadOnlyList<OcorrenciaRetorno> InterpretarMotivos(string conteudo)
+    private static IReadOnlyList<OcorrenciaRetorno> InterpretarMotivos(string conteudo, Banco banco)
     {
         var motivos = new List<OcorrenciaRetorno>();
         for (var i = 0; i + 1 < conteudo.Length; i += 2)
@@ -334,7 +403,7 @@ public static class LeitorRetorno240
 
             motivos.Add(new OcorrenciaRetorno(
                 codigo,
-                TabelasOcorrencias.ObterMotivoRejeicao(codigo),
+                TabelasOcorrencias.ObterMotivo(banco, codigo),
                 FamiliaOcorrencia.Rejeicao));
         }
 

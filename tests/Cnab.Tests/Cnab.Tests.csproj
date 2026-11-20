@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <None Update="Golden\*.rem" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Golden\*.ret" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -82,6 +82,30 @@ public static class TabelasOcorrencias
             ? descricao
             : throw new ArgumentException($"Motivo de rejeição '{codigo}' não catalogado.", nameof(codigo));
 
+    /// <summary>
+    /// Busca a descrição de um motivo considerando a tabela específica do
+    /// banco (por exemplo Sicredi P1/P2 no layout de cobrança).
+    /// </summary>
+    /// <param name="banco">Banco emissor do retorno.</param>
+    /// <param name="codigo">Código do motivo.</param>
+    /// <returns>Descrição publicada.</returns>
+    public static string ObterMotivo(Banco banco, string codigo)
+    {
+        ArgumentNullException.ThrowIfNull(banco);
+        var chave = Normalizar(codigo);
+        if (banco.Codigo == 748 && MotivosSicredi.TryGetValue(chave, out var sicredi))
+        {
+            return sicredi;
+        }
+
+        if (banco.Codigo == 341 && MotivosItau.TryGetValue(chave, out var itau))
+        {
+            return itau;
+        }
+
+        return ObterMotivoRejeicao(codigo);
+    }
+
     /// <summary>Todos os códigos de ocorrência de cobrança catalogados.</summary>
     /// <returns>Coleção somente leitura (ordenação não garantida).</returns>
     public static IEnumerable<OcorrenciaRetorno> TodasCobranca() => CodigosCobranca.Values;
@@ -95,7 +119,12 @@ public static class TabelasOcorrencias
         var tabela = codigoBanco switch
         {
             1 => BancoDoBrasil,
+            77 => Inter,
             104 => Caixa,
+            208 => Btg,
+            237 => Bradesco,
+            341 => Itau,
+            748 => Sicredi,
             33 => Santander,
             756 => Sicoob,
             _ => null,
@@ -187,6 +216,11 @@ public static class TabelasOcorrencias
     private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Caixa = CriarCaixa();
     private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Santander = CriarSantander();
     private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Sicoob = CriarSicoob();
+    private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Inter = CriarInter();
+    private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Btg = CriarBtg();
+    private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Bradesco = CriarBradesco();
+    private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Itau = CriarItau();
+    private static readonly IReadOnlyDictionary<string, OcorrenciaRetorno> Sicredi = CriarSicredi();
 
     private static IReadOnlyDictionary<string, OcorrenciaRetorno> CriarBb() => new Dictionary<string, OcorrenciaRetorno>(StringComparer.Ordinal)
     {
@@ -220,6 +254,102 @@ public static class TabelasOcorrencias
         ["TA"] = new("TA", "Lote não aceito — totais do lote com diferença", FamiliaOcorrencia.Rejeicao),
         ["YA"] = new("YA", "Título não encontrado", FamiliaOcorrencia.Rejeicao),
         ["YB"] = new("YB", "Identificador de registro opcional inválido", FamiliaOcorrencia.Rejeicao),
+    };
+
+    // Inter — manual CNAB240 Pagamentos V1.21 (10/02/2026), Nota 01,
+    // ocorrências de retorno nas posições 231-240.
+    private static IReadOnlyDictionary<string, OcorrenciaRetorno> CriarInter() => new Dictionary<string, OcorrenciaRetorno>(StringComparer.Ordinal)
+    {
+        ["00"] = new("00", "Crédito ou débito efetivado", FamiliaOcorrencia.Liquidacao),
+        ["AR"] = new("AR", "Valor do lançamento inválido", FamiliaOcorrencia.Rejeicao),
+        ["AG"] = new("AG", "Agência/conta corrente/DV inválido", FamiliaOcorrencia.Rejeicao),
+        ["ZI"] = new("ZI", "Beneficiário divergente", FamiliaOcorrencia.Rejeicao),
+        ["AP"] = new("AP", "Data de lançamento inválida", FamiliaOcorrencia.Rejeicao),
+        ["HF"] = new("HF", "Conta corrente da empresa com saldo insuficiente", FamiliaOcorrencia.Rejeicao),
+        ["AB"] = new("AB", "Tipo de operação inválido", FamiliaOcorrencia.Rejeicao),
+        ["AC"] = new("AC", "Tipo de serviço inválido", FamiliaOcorrencia.Rejeicao),
+        ["HA"] = new("HA", "Lote não aceito", FamiliaOcorrencia.Rejeicao),
+        ["BD"] = new("BD", "Inclusão efetuada com sucesso", FamiliaOcorrencia.Informativo),
+        ["PA"] = new("PA", "Pix não efetivado", FamiliaOcorrencia.Rejeicao),
+        ["PJ"] = new("PJ", "Chave não cadastrada no DICT", FamiliaOcorrencia.Rejeicao),
+        ["PM"] = new("PM", "Chave de pagamento inválida", FamiliaOcorrencia.Rejeicao),
+        ["PN"] = new("PN", "Chave de pagamento não informada", FamiliaOcorrencia.Rejeicao),
+        ["PK"] = new("PK", "QR Code inválido/vencido", FamiliaOcorrencia.Rejeicao),
+        ["PB"] = new("PB", "Transação interrompida — erro no PSP do recebedor", FamiliaOcorrencia.Rejeicao),
+        ["PD"] = new("PD", "Tipo incorreto para conta transacional", FamiliaOcorrencia.Rejeicao),
+        ["PE"] = new("PE", "Tipo de transação não suportado/autorizado", FamiliaOcorrencia.Rejeicao),
+        ["PH"] = new("PH", "Ordem rejeitada pelo PSP do recebedor", FamiliaOcorrencia.Rejeicao),
+        ["AL"] = new("AL", "Código do banco favorecido/instituição/depositário inválido", FamiliaOcorrencia.Rejeicao),
+        ["PG"] = new("PG", "CPF/CNPJ do usuário recebedor incorreto", FamiliaOcorrencia.Rejeicao),
+        ["AS"] = new("AS", "Aviso ao favorecido — identificação inválida", FamiliaOcorrencia.Rejeicao),
+        ["ZK"] = new("ZK", "Boleto já liquidado", FamiliaOcorrencia.Rejeicao),
+        ["HC"] = new("HC", "Convênio com a empresa inexistente/inválido", FamiliaOcorrencia.Rejeicao),
+        ["CD"] = new("CD", "Código de barras — valor do título inválido", FamiliaOcorrencia.Rejeicao),
+        ["ZH"] = new("ZH", "Sistema em contingência — título indexado", FamiliaOcorrencia.Informativo),
+        ["PI"] = new("PI", "ISPB do PSP do pagador inválido", FamiliaOcorrencia.Rejeicao),
+        ["HE"] = new("HE", "Tipo de serviço inválido para o contrato", FamiliaOcorrencia.Rejeicao),
+        ["YA"] = new("YA", "Título não encontrado", FamiliaOcorrencia.Rejeicao),
+        ["PF"] = new("PF", "CPF/CNPJ do recebedor inconsistente com titular/chave", FamiliaOcorrencia.Rejeicao),
+        ["ZJ"] = new("ZJ", "Limite de pagamentos parciais excedido", FamiliaOcorrencia.Rejeicao),
+    };
+
+    // BTG — de-para de retorno publicado no portal do desenvolvedor (208).
+    private static IReadOnlyDictionary<string, OcorrenciaRetorno> CriarBtg() => new Dictionary<string, OcorrenciaRetorno>(StringComparer.Ordinal)
+    {
+        ["74"] = new("74", "Recompra com substituição", FamiliaOcorrencia.Informativo),
+        ["85"] = new("85", "Recompra com adiantamento", FamiliaOcorrencia.Informativo),
+        ["93"] = new("93", "Título rejeitado", FamiliaOcorrencia.Rejeicao),
+    };
+
+    // Bradesco — MPO 240 v04, ocorrências proprietárias complementares.
+    private static IReadOnlyDictionary<string, OcorrenciaRetorno> CriarBradesco() => new Dictionary<string, OcorrenciaRetorno>(StringComparer.Ordinal)
+    {
+        ["66"] = new("66", "Título baixado por pagamento via Pix", FamiliaOcorrencia.Baixa),
+    };
+
+    // Itaú — manual janeiro/2017, Nota 22 (subset proprietário complementar).
+    private static IReadOnlyDictionary<string, OcorrenciaRetorno> CriarItau() => new Dictionary<string, OcorrenciaRetorno>(StringComparer.Ordinal)
+    {
+        ["59"] = new("59", "Baixa por crédito em C/C através do SISPAG", FamiliaOcorrencia.Baixa),
+        ["64"] = new("64", "Entrada confirmada com rateio de crédito", FamiliaOcorrencia.EntradaConfirmada),
+        ["65"] = new("65", "Pagamento com cheque — aguardando compensação", FamiliaOcorrencia.Informativo),
+        ["74"] = new("74", "Instrução de negativação expressa rejeitada", FamiliaOcorrencia.Rejeicao),
+        ["75"] = new("75", "Confirmação do recebimento da instrução de entrada em negativação expressa", FamiliaOcorrencia.Informativo),
+        ["77"] = new("77", "Confirmação do recebimento da instrução de exclusão de entrada em negativação expressa", FamiliaOcorrencia.Informativo),
+        ["78"] = new("78", "Confirmação do recebimento da instrução de cancelamento da negativação expressa", FamiliaOcorrencia.Informativo),
+        ["79"] = new("79", "Negativação expressa informacional", FamiliaOcorrencia.Informativo),
+        ["94"] = new("94", "Confirmação do recebimento da instrução de não negativar", FamiliaOcorrencia.Informativo),
+    };
+
+    // Sicredi — manual CNAB 240 cobrança, movimentos de retorno complementares.
+    private static IReadOnlyDictionary<string, OcorrenciaRetorno> CriarSicredi() => new Dictionary<string, OcorrenciaRetorno>(StringComparer.Ordinal)
+    {
+        ["61"] = new("61", "Liquidação PIX", FamiliaOcorrencia.Liquidacao),
+        ["78"] = new("78", "Confirmação do pedido de negativação", FamiliaOcorrencia.Informativo),
+        ["79"] = new("79", "Confirmação da exclusão de negativação", FamiliaOcorrencia.Informativo),
+        ["80"] = new("80", "Confirmação da entrada de negativação", FamiliaOcorrencia.Informativo),
+        ["81"] = new("81", "Entrada de negativação rejeitada", FamiliaOcorrencia.Rejeicao),
+        ["82"] = new("82", "Confirmação da exclusão de negativação", FamiliaOcorrencia.Informativo),
+        ["83"] = new("83", "Exclusão de negativação rejeitada", FamiliaOcorrencia.Rejeicao),
+        ["84"] = new("84", "Exclusão de negativação por outros motivos", FamiliaOcorrencia.Informativo),
+        ["85"] = new("85", "Ocorrência informacional por outros motivos", FamiliaOcorrencia.Informativo),
+        ["P1"] = new("P1", "Confirmado com QrCode", FamiliaOcorrencia.Informativo),
+        ["P2"] = new("P2", "Confirmado sem QrCode", FamiliaOcorrencia.Informativo),
+    };
+
+    private static readonly IReadOnlyDictionary<string, string> MotivosSicredi = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["P1"] = "Confirmado com QrCode",
+        ["P2"] = "Confirmado sem QrCode",
+        ["P6"] = "TXID duplicado/inválido",
+        ["PX"] = "Liquidação via QrCode",
+    };
+
+    private static readonly IReadOnlyDictionary<string, string> MotivosItau = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["01"] = "CEP sem atendimento de protesto no momento",
+        ["02"] = "Estado com determinação legal que impede inscrição de inadimplentes no prazo solicitado",
+        ["03"] = "Boleto não liquidado no desconto de duplicatas e transferido para cobrança simples",
     };
 
     private static ReadOnlyDictionary<string, string> CriarMotivos()

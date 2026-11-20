@@ -91,6 +91,9 @@ public sealed record PerfilBanco240
     /// <summary>Ajustes aplicados ao header de lote de cobrança.</summary>
     public IReadOnlyList<AjusteCampo240> AjustesHeaderLoteCobranca { get; init; } = [];
 
+    /// <summary>Ajustes aplicados ao header de lote de pagamentos.</summary>
+    public IReadOnlyList<AjusteCampo240> AjustesHeaderLotePagamento { get; init; } = [];
+
     /// <summary>Ajustes aplicados ao segmento P.</summary>
     public IReadOnlyList<AjusteCampo240> AjustesSegmentoP { get; init; } = [];
 
@@ -110,7 +113,7 @@ public sealed record PerfilBanco240
     public IReadOnlyList<AjusteCampo240> AjustesTrailerLotePagamento { get; init; } = [];
 
     /// <summary>
-    /// Obtém o perfil de um banco suportado neste marco (001, 033, 104, 756).
+    /// Obtém o perfil de um banco suportado (001, 033, 104, 756, 237, 341, 748, 077, 208).
     /// </summary>
     /// <param name="banco">Banco.</param>
     /// <returns>Perfil correspondente.</returns>
@@ -122,7 +125,12 @@ public sealed record PerfilBanco240
         {
             1 => BancoDoBrasil,
             33 => Santander,
+            77 => Inter,
             104 => Caixa,
+            208 => Btg,
+            237 => Bradesco,
+            341 => Itau,
+            748 => Sicredi,
             756 => Sicoob,
             _ => throw new ArgumentException(
                 $"Banco {banco} não tem perfil CNAB 240 implementado neste marco.", nameof(banco)),
@@ -228,6 +236,103 @@ public sealed record PerfilBanco240
             new(224, 1, "0", "Sicoob: 38.3P (baixa/devolução) = 0."),
             new(228, 2, "09", "Sicoob: 40.3P (moeda) = 09."),
             new(230, 10, new string('0', 10), "Sicoob: 41.3P = zeros para simples com registro."),
+        ],
+    };
+
+    /// <summary>Perfil do Bradesco (237) — manual 4008.524.0339 v09 / MPO 240 v04.</summary>
+    public static PerfilBanco240 Bradesco { get; } = new(Bancos.Bradesco, "BRADESCO")
+    {
+        // "MPO — Troca de Arquivos 240 Posições" v04 (dezembro/2024) e
+        // 4008.524.0339 v09: versão do arquivo 084 e do lote de cobrança 042.
+        VersaoLayoutArquivo = 84,
+        VersaoLayoutLoteCobranca = 42,
+        AjustesTrailerLotePagamento =
+        [
+            new(231, 10, new string('0', 10), "Bradesco: ocorrências 231-240 = zeros na remessa de pagamentos."),
+        ],
+    };
+
+    /// <summary>Perfil do Itaú (341) — manual de cobrança CNAB 240, janeiro/2017.</summary>
+    public static PerfilBanco240 Itau { get; } = new(Bancos.Itau, "BANCO ITAU SA")
+    {
+        // "Cobrança Bancária — Layout de Arquivos FEBRABAN 240", janeiro/2017:
+        // versão do arquivo 040 (164-166) e do lote 030 (014-016). Agência de
+        // 4 posições e conta de 5 posições — ver registros dedicados no gerador.
+        VersaoLayoutArquivo = 40,
+        VersaoLayoutLoteCobranca = 30,
+    };
+
+    /// <summary>Perfil do Sicredi (748) — manual CNAB 240 cobrança (portal do desenvolvedor).</summary>
+    public static PerfilBanco240 Sicredi { get; } = new(Bancos.Sicredi, "SICREDI")
+    {
+        // "CNAB 240 — Cobrança Sicredi": versão do arquivo 081 e do lote 040;
+        // convênio em branco (não usado) e agência sem DV.
+        VersaoLayoutArquivo = 81,
+        VersaoLayoutLoteCobranca = 40,
+        AjustesHeaderArquivo =
+        [
+            new(33, 20, new string(' ', 20), "Sicredi: convênio 33-52 em branco (o banco não usa convênio)."),
+            new(58, 1, " ", "Sicredi: DV da agência (58) em branco."),
+            new(72, 1, " ", "Sicredi: DV ag/conta (72) em branco."),
+        ],
+        AjustesHeaderLoteCobranca =
+        [
+            new(34, 20, new string(' ', 20), "Sicredi: convênio 34-53 em branco."),
+            new(59, 1, " ", "Sicredi: DV da agência (59) em branco."),
+            new(73, 1, " ", "Sicredi: DV ag/conta (73) em branco."),
+        ],
+        AjustesSegmentoP =
+        [
+            new(23, 1, " ", "Sicredi: DV da agência (23) em branco."),
+            new(37, 1, " ", "Sicredi: DV ag/coop (37) em branco."),
+            new(224, 1, "1", "Sicredi: código de baixa/devolução = 1 (usar sempre)."),
+            new(225, 3, "000", "Sicredi: prazo de baixa/devolução = 000 (não usado)."),
+        ],
+    };
+
+    /// <summary>Perfil do Banco Inter (077) — manual CNAB 240 pagamentos V1.21.</summary>
+    public static PerfilBanco240 Inter { get; } = new(Bancos.Inter, "BANCO INTER")
+    {
+        // "Manual CNAB240 Pagamentos" V1.21 (10/02/2026): versão do arquivo
+        // 107 e do lote 046; agência única 00001 com DV 9. O Inter não tem
+        // layout CNAB 240 de cobrança — a cobrança é CNAB 400 (vide Cnab400).
+        VersaoLayoutArquivo = 107,
+        VersaoLayoutLotePagamento = 46,
+        AjustesHeaderArquivo =
+        [
+            new(33, 20, new string(' ', 20), "Inter: posições 33-52 em branco (manual V1.21)."),
+            new(53, 5, "00001", "Inter: agência única 00001 (manual V1.21)."),
+            new(58, 1, "9", "Inter: DV da agência 9 (manual V1.21)."),
+            new(72, 1, " ", "Inter: posição 72 em branco (manual V1.21)."),
+        ],
+        AjustesHeaderLotePagamento =
+        [
+            new(33, 20, new string(' ', 20), "Inter: posições 33-52 em branco (manual V1.21)."),
+            new(53, 5, "00001", "Inter: agência única 00001."),
+            new(58, 1, "9", "Inter: DV da agência 9."),
+            new(72, 1, " ", "Inter: posição 72 em branco."),
+        ],
+        AjustesTrailerLotePagamento =
+        [
+            new(231, 10, new string(' ', 10), "Inter: ocorrências 231-240 preenchidas pelo banco no retorno."),
+        ],
+    };
+
+    /// <summary>Perfil do BTG Pactual (208) — manual CNAB 240 FEBRABAN 10.9.</summary>
+    public static PerfilBanco240 Btg { get; } = new(Bancos.Btg, "BTG PACTUAL")
+    {
+        // Portal do desenvolvedor BTG: FEBRABAN 10.9 suportada; versão do
+        // arquivo 103 e do lote 060 com carteira/cadastramento fixos em 1,
+        // tipo de documento 2, emissão e distribuição 1 (Origem/ERP, 11/11/2026).
+        VersaoLayoutArquivo = 103,
+        VersaoLayoutLoteCobranca = 60,
+        AjustesSegmentoP =
+        [
+            new(58, 1, "1", "BTG: carteira fixa 1."),
+            new(59, 1, "1", "BTG: forma de cadastramento 1."),
+            new(60, 1, "2", "BTG: tipo de documento 2."),
+            new(61, 1, "1", "BTG: emissão do boleto 1."),
+            new(62, 1, "1", "BTG: distribuição do boleto 1."),
         ],
     };
 

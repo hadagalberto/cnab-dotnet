@@ -193,3 +193,99 @@ pública, ela não foi codificada e o fato está registrado ao final desta seç�
   inferida além das ali publicadas.
 - A descrição do código A001 na faixa 0301–0306 foi reconstruída de um manual
   com colunas entrelaçadas na extração; os demais códigos seguem F1.
+
+## Marco 3 — Itaú, Bradesco, Sicredi, Inter e BTG (240/400)
+
+Nenhuma posição ou regra desta seção foi inventada: todos os valores abaixo
+foram extraídos dos manuais oficiais (ou, onde indicado, de transcrição
+terceirizada/dev portal do próprio banco) e confrontados com as tabelas do
+marco 2. Os PDFs oficiais foram baixados e o texto extraído com PyMuPDF; as
+páginas HTML oficiais e as transcrições citadas foram lidas diretamente.
+
+### Fontes oficiais (marco 3)
+
+| ID | Documento | Versão / data | URL |
+| --- | --- | --- | --- |
+| I1 | Itaú, *Cobrança Bancária — Layout de Arquivos FEBRABAN 240* | janeiro/2017 | https://download.itau.com.br/bankline/cobranca_cnab240.pdf |
+| I2 | Itaú, *Cobrança Bancária — Layout de Arquivos CNAB 400* | janeiro/2017 | https://download.itau.com.br/bankline/layout_cobranca_400bytes_cnab_itau.pdf |
+| B3 | Bradesco, *MPO — Troca de Arquivos 240 Posições* | v04, dezembro/2024 | https://assets.bradesco.com.br/content/dam/portal-bradesco/assets/pessoajuridica/pdf/MPO-Troca-Arquivos-Layout-240P.pdf |
+| B4 | Bradesco, *MPO 240 posições* 4008.524.0339 | v09, 09/2020 | https://assets.bradesco.com.br/content/dam/portal-bradesco/assets/pessoajuridica/pdf/4008-524-0339-mp-operacionais-troca-arquivos-240-posicoes.pdf |
+| B1' | Bradesco, *Cobrança — Versão Português* 4008.524.0121 | v17, 28/09/2020 | https://assets.bradesco.com.br/content/dam/portal-bradesco/assets/pessoajuridica/pdf/4008-524-0121-layout-cobranca-versao-portugues.pdf |
+| S3 | Sicredi, *CNAB 240 — Cobrança Sicredi* (manual + tabelas no portal) | atualizado 29/09/2026 | https://developers.sicredi.com.br/public/docs/getting-started-cnabs-240-billing |
+| S4 | Sicredi, *CNAB 400 — Cobrança Sicredi* | v2.1, novembro/2021 | https://www.sicredi.com.br/media/produtos/manual_cnab_400_2_1.pdf |
+| IN1 | Inter, *Manual CNAB400 — Emissão de boletos de cobrança* | v2.2, 26/08/2024 | https://s3.sa-east-1.amazonaws.com/static.bancointer.com.br/openbanking/cnab/manual/manual.pdf |
+| IN2 | Inter, *Manual CNAB240 Pagamentos* | v1.21, 10/02/2026 | https://static.bancointer.com.br/enterprise-solution/cnab240/manual/Manual_CNAB240_Pagamentos.pdf |
+| T1 | BTG Pactual, portal do desenvolvedor — *CNAB Febraban 240 posições* (FEBRABAN 10.9) | atualizado 15/03/2025 | https://developers.empresas.btgpactual.com/docs/cnab-febraban-240-posi%C3%A7%C3%B5es |
+| T2 | VeHub/Vertrau (transcrição do manual BTG, **terceirizada**) — *Remessa 240* / *Retorno 240* | © 2024/2025 | https://docs.vehub.com.br/Layouts/%F0%9F%8F%A6%20BTG%20Pactual/Manual/Remessa%20240/ · https://docs.vehub.com.br/Layouts/%F0%9F%8F%A6%20BTG%20Pactual/Manual/Retorno%20240/ |
+| F4 | FEBRABAN, *Padrão 240 posições* | V11.0, 11/09/2026 | https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20padrao%20CNAB240%20V%2011_0%20-%202026_09_11.pdf |
+
+### Posições e desvios implementados
+
+- **Itaú 240 (I1)**: versão do arquivo `040` (164-166) e do lote `030`
+  (014-016); agência de 4 posições e conta de 5, com DAC na posição 72 do
+  header e 73 do header de lote (Anexo 4); segmento P com carteira em 038-040,
+  nosso número em 041-048 e DAC em 049; segmento Q com brancos em 064-073.
+  O DAC usa módulo 10 sobre agência+conta+carteira+nosso número (carteiras
+  126/131/146/150/168 usam só carteira+nosso número). No retorno, os motivos
+  ficam em T 214-221 (8 posições, 4 códigos) e as tarifas em T 199-213;
+  ocorrências proprietárias 59, 64, 65, 74-79 e 94 mapeadas.
+- **Itaú 400 (I2)**: header com agência 027-030, conta 033-037 e DAC 038;
+  registro 1 com uso da empresa 038-062, nosso número 063-070, carteira
+  numérica 084-086 e código de carteira 108; juros em 161-173, desconto em
+  180-192, abatimento em 206-218; **motivos de rejeição em 378-385**, não
+  319-328; data de crédito em 296-301 (no header, 114-119); registro 2 de
+  multa (posições 002-023); trailer de remessa sem totalizadores. Tabela
+  completa de ocorrências (Nota 17) e motivos de entrada (Tabela 1) e de
+  devolução de cheque (Tabela 9) codificada em `TabelasOcorrencias400`.
+- **Bradesco 240 (B3/B4)**: versões `084`/`042`; identificação do título no
+  banco decomposta em produto(3)+zeros(5)+nosso número(11)+DV(1) nas posições
+  038-057 (o DV é o da carteira+NN, módulo 11, resto 1 → "P"); carteira real
+  vai no produto, não em C006. Ocorrência 66 ("Pix") sobrescreve a tabela
+  FEBRABAN.
+- **Bradesco 400 (B1')**: header com código de empresa 027-046 e sistema "MX"
+  em 109-110; registro 1 com carteira 022-024, agência/conta beneficiária
+  025-037, nosso número 071-082 (11+DV), ocorrência 109-110, tarifa 176-188,
+  custas de protesto 189-201, valor pago 254-266, data de crédito 296-301 e
+  motivos 319-328 (até 5 pares); mensagens no registro 2; trailer com blocos
+  por carteira. Tabelas de ocorrências e motivos (Tabelas 1 e 2 do manual,
+  incluindo P1-P8) codificadas.
+- **Sicredi 240 (S3)**: versões `081`/`040`; convênio em branco; agência sem
+  DV (58/59/23 em branco); nosso número `AA/B/XXXXX-D` com DV módulo 11;
+  código de baixa/devolução 224 = 1 e prazo 225-227 = 000; segmentos S e Y
+  proprietários documentados; movimentos de retorno 61 (Pix) e 78-85 e P1/P2
+  catalogados; motivos P1/P2/P6/PX têm descrições próprias.
+- **Sicredi 400 (S4)**: datas de geração/gravação em `AAAAMMDD` (gravadas
+  como texto); literal `SICREDI` na remessa e `BANSICREDI` no retorno;
+  registro 1 com nosso número 048-056, instrução 109-110, seu número 111-120,
+  vencimento 121-126, valor 127-139; no retorno, nosso número 048-062,
+  ocorrência 109-110, valor pago 254-266, motivos 319-328 e data prevista de
+  crédito 329-336 (`AAAAMMDD`). Tabela de motivos do manual (códigos A1-B9,
+  C1-C9, D1-D9, E1-E9, F1-F9, G1-G9, H1-H9, I1-I9, J1-J9, K1-K9, L1-L7,
+  M1-M3, N1-N5, P1/P2/P6/PX, S1/S4/S5, X0-XB) codificada.
+- **Inter 240 (IN2)**: o Inter **não possui layout CNAB 240 de cobrança** — o
+  manual V1.21 cobre apenas pagamentos (segmentos A/B/J/J-52/O). Perfil com
+  versão `107`/`046`, agência única `00001` com DV `9` e tabela própria de
+  ocorrências G059 em 231-240 (00, AR, AG, ZI, PA, PJ, PK, HA, ...).
+- **Inter 400 (IN1)**: literal `INTER`, sequencial em 111-117; registro 1 com
+  carteira 021-023 (`110`/`112`), conta 028-036, nosso número 090-100,
+  ocorrência 109-110, valor 127-139; **no retorno a ocorrência está em
+  090-91, a data em 092-097, o valor em 160-172 e a data de crédito em
+  173-178** — diferente da convenção 109-110/111-116/254-266; motivo de
+  rejeição é texto livre em 241-380, sem tabela codificada (não inventada).
+  Trailer de remessa informa quantidade de boletos em 002-007.
+- **BTG 240 (T1/T2)**: FEBRABAN 10.9, versões `103`/`060`, carteira fixa `1`,
+  cadastramento `1`, tipo de documento `2`, emissão/distribuição `1`.
+  O portal oficial publica o de-para de retorno 74/85/93; o campo "Chave NFe"
+  241-284 da transcrição terceirizada fica além dos 240 bytes e **não é
+  gravado**.
+
+### Golden files e round-trip
+
+`tests/Cnab.Tests/Golden/` contém `NNN_cobranca_240.rem` (237, 341, 748, 208),
+`077_pagamento_240.rem`, `NNN_cobranca_400.rem` e `NNN_cobranca_400.ret`
+(341, 237, 748, 077), todos com CRLF preservado por `.gitattributes`.
+`GoldenFilesMilestone3Tests` compara byte a byte a saída dos geradores e o
+round-trip `parse(write(x)) == x` dos retornos. LINHA de retorno é preservada
+integralmente nos modelos (`LinhaOriginal`, `LinhaHeader`, `LinhaTrailer`) —
+isso cobre também bancos cujos cabeçalhos divergem do registro FEBRABAN
+genérico (Itaú/Inter), sem reescrever campos não publicados.

@@ -3,3 +3,4 @@
 # Golden files CNAB são byte-exatos: cada registro termina com CRLF (0D 0A).
 # Não podem ser normalizados para LF pelo Git, sob pena de quebrar os testes.
 tests/Cnab.Tests/Golden/*.rem -text
+tests/Cnab.Tests/Golden/*.ret -text

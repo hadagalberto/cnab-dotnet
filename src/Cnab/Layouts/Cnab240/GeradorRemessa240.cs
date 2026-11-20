@@ -112,6 +112,12 @@ public sealed record Remessa240
     /// </summary>
     public string CodigoBeneficiario { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Código do produto do Bradesco (3 posições, identificação do título no
+    /// banco no segmento P). Obrigatório para remessas de cobrança do Bradesco.
+    /// </summary>
+    public string CodigoProduto { get; init; } = string.Empty;
+
     /// <summary>Número remessa/retorno do header de lote de cobrança; usa NSA quando ausente.</summary>
     public long? NumeroRemessaRetorno { get; init; }
 
@@ -153,10 +159,13 @@ public static class GeradorRemessa240
         Validar(remessa);
 
         var perfil = remessa.Perfil ?? PerfilBanco240.Obter(remessa.Banco);
-        var linhas = new List<string>
+        var headerArquivo = PerfilBanco240.Aplicar(MontarHeaderArquivo(remessa, perfil), perfil.AjustesHeaderArquivo);
+        if (remessa.Banco.Codigo == 341)
         {
-            PerfilBanco240.Aplicar(MontarHeaderArquivo(remessa, perfil), perfil.AjustesHeaderArquivo),
-        };
+            headerArquivo = PerfilBanco240.Aplicar(headerArquivo, AjustesBanco240.HeaderArquivoItau(remessa));
+        }
+
+        var linhas = new List<string> { headerArquivo };
 
         var numeroLote = 0;
         foreach (var lote in remessa.LotesCobranca)
@@ -249,7 +258,13 @@ public static class GeradorRemessa240
                 NumeroRemessaRetorno = remessa.NumeroRemessaRetorno ?? remessa.NumeroSequencialArquivo,
                 DataGravacao = remessa.DataGeracao,
             });
-            yield return PerfilBanco240.Aplicar(header, perfil.AjustesHeaderLoteCobranca);
+            header = PerfilBanco240.Aplicar(header, perfil.AjustesHeaderLoteCobranca);
+            if (remessa.Banco.Codigo == 341)
+            {
+                header = PerfilBanco240.Aplicar(header, AjustesBanco240.HeaderLoteItau(remessa));
+            }
+
+            yield return header;
         }
 
         var sequencial = 0;
@@ -296,14 +311,39 @@ public static class GeradorRemessa240
                 DiasProtesto = titulo.Protesto?.Dias ?? 0,
                 CodigoMoeda = Codigos240.MoedaRealCodigo,
             };
-            yield return remessa.Banco.Codigo == 33
-                ? RegistroCnab<SegmentoPSantander240>.Escrever(MontarSegmentoPSantander(remessa, titulo, numeroLote, sequencial, movimento))
-                : PerfilBanco240.Aplicar(RegistroCnab<SegmentoP240>.Escrever(p), perfil.AjustesSegmentoP);
+            string linhaP;
+            if (remessa.Banco.Codigo == 33)
+            {
+                linhaP = RegistroCnab<SegmentoPSantander240>.Escrever(
+                    MontarSegmentoPSantander(remessa, titulo, numeroLote, sequencial, movimento));
+            }
+            else
+            {
+                linhaP = PerfilBanco240.Aplicar(RegistroCnab<SegmentoP240>.Escrever(p), perfil.AjustesSegmentoP);
+                if (remessa.Banco.Codigo == 341)
+                {
+                    linhaP = PerfilBanco240.Aplicar(linhaP, AjustesBanco240.SegmentoPItau(remessa, titulo));
+                }
+                else if (remessa.Banco.Codigo == 237)
+                {
+                    var carteiraBradesco = DigitosSomente(titulo.Carteira, 2, "Carteira");
+                    linhaP = PerfilBanco240.Aplicar(
+                        linhaP,
+                        AjustesBanco240.SegmentoPBradesco(remessa.CodigoProduto, carteiraBradesco, titulo));
+                }
+            }
+
+            yield return linhaP;
 
             sequencial++;
             var q = MontarSegmentoQ(remessa, perfil, titulo, numeroLote, sequencial, movimento);
-            yield return PerfilBanco240.Aplicar(
-                RegistroCnab<SegmentoQ240>.Escrever(q), perfil.AjustesSegmentoQ);
+            var linhaQ = PerfilBanco240.Aplicar(RegistroCnab<SegmentoQ240>.Escrever(q), perfil.AjustesSegmentoQ);
+            if (remessa.Banco.Codigo == 341)
+            {
+                linhaQ = PerfilBanco240.Aplicar(linhaQ, AjustesBanco240.SegmentoQItau());
+            }
+
+            yield return linhaQ;
 
             if (titulo.Multa is not null || titulo.Instrucoes.Count > 0)
             {
@@ -366,7 +406,7 @@ public static class GeradorRemessa240
             NomeEmpresa = remessa.Cedente.Nome,
             IndicativoFormaPagamento = 0,
         });
-        yield return header;
+        yield return PerfilBanco240.Aplicar(header, perfil.AjustesHeaderLotePagamento);
 
         var sequencial = 0;
         decimal soma = 0;
@@ -720,6 +760,17 @@ public static class GeradorRemessa240
     private static string Insercao(DocumentoFiscal documento, int tamanho) =>
         documento.Digitos.PadLeft(tamanho, '0');
 
+    private static string DigitosSomente(string valor, int tamanho, string nome)
+    {
+        var digitos = new string([.. valor.Where(char.IsAsciiDigit)]);
+        if (digitos.Length > tamanho)
+        {
+            throw new ArgumentException($"{nome} excede {tamanho} dígitos.", nome);
+        }
+
+        return digitos.PadLeft(tamanho, '0');
+    }
+
     private static int inteiro(string valor, int tamanho, string nome)
     {
         var digitos = new string([.. valor.Where(char.IsAsciiDigit)]);
@@ -767,6 +818,12 @@ public static class GeradorRemessa240
         }
 
         remessa.Cedente.Conta.Validar();
+        if (remessa.Banco.Codigo == 237 && remessa.LotesCobranca.Count > 0
+            && remessa.CodigoProduto.Length == 0)
+        {
+            throw new ArgumentException("Bradesco exige o código do produto (3 posições) para cobrança.", nameof(remessa));
+        }
+
         foreach (var lote in remessa.LotesCobranca)
         {
             if (lote.Titulos.Count == 0)
