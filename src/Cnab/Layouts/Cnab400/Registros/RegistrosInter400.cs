@@ -668,7 +668,7 @@ public static class RegistrosInter400
             CodigoRemessaRetorno = h.CodigoRetorno,
             DataGeracao = h.DataGravacao,
             NumeroSequencialArquivo = h.NumeroSequencial,
-            LinhaOriginal = RegistroCnab<HeaderRetornoInter400>.Escrever(h),
+            LinhaOriginal = linha,
         };
     }
 
@@ -682,7 +682,7 @@ public static class RegistrosInter400
         var d = RegistroCnab<DetalheRetornoInter400>.Ler(linha, numeroLinha);
         return new ItemRetorno400
         {
-            LinhaOriginal = RegistroCnab<DetalheRetornoInter400>.Escrever(d),
+            LinhaOriginal = linha,
             TipoRegistro = d.IdentificacaoRegistro,
             Sequencial = d.NumeroSequencial,
             NossoNumero = d.NossoNumero.Trim(),
@@ -713,7 +713,7 @@ public static class RegistrosInter400
             TipoRegistro = t.IdentificacaoRegistro,
             CodigoRemessaRetorno = t.CodigoRetorno,
             NumeroSequencialArquivo = t.NumeroSequencial,
-            LinhaOriginal = RegistroCnab<TrailerRetornoInter400>.Escrever(t),
+            LinhaOriginal = linha,
         };
     }
 

@@ -44,6 +44,29 @@ public sealed record Endereco
 }
 
 /// <summary>
+/// Dados do cedente junto a uma cooperativa (Sicredi 748 / Sicoob 756),
+/// necessários para calcular o DV do nosso número. O DV desses bancos usa
+/// cooperativa, posto e código do beneficiário (Sicredi) ou cooperativa e
+/// código do cliente (Sicoob) — não apenas os dígitos do nosso número.
+/// Fontes: Sicredi "CNAB 240 – Cobrança" itens 4.4/4.5; Sicoob
+/// "Layouts para troca de informações — Cobrança" item 3.13.
+/// </summary>
+public sealed record DadosCooperativa
+{
+    /// <summary>Cooperativa/agência, 4 dígitos (Sicredi e Sicoob).</summary>
+    public string Cooperativa { get; init; } = string.Empty;
+
+    /// <summary>Posto, 2 dígitos — "00" quando o posto for alfanumérico (Sicredi).</summary>
+    public string Posto { get; init; } = string.Empty;
+
+    /// <summary>Código do beneficiário, 5 dígitos (Sicredi).</summary>
+    public string CodigoBeneficiario { get; init; } = string.Empty;
+
+    /// <summary>Código do cliente/associado, 10 dígitos (Sicoob).</summary>
+    public string CodigoCliente { get; init; } = string.Empty;
+}
+
+/// <summary>
 /// Beneficiário/cedente da cobrança: a empresa que emite os títulos. FEBRABAN
 /// usa "Beneficiário" (cobrança) e "Empresa Cliente" (pagamentos); o SPEC usa
 /// "Cedente/Beneficiário".
@@ -61,6 +84,12 @@ public sealed record Cedente
 
     /// <summary>Conta bancária do cedente (agência, conta, DVs).</summary>
     public required ContaBancaria Conta { get; init; }
+
+    /// <summary>
+    /// Dados da cooperativa (Sicredi/Sicoob). Obrigatórios para esses bancos:
+    /// sem eles o DV do nosso número não pode ser conferido.
+    /// </summary>
+    public DadosCooperativa? DadosCooperativa { get; init; }
 }
 
 /// <summary>

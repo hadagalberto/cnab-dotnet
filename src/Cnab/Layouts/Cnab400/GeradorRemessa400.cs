@@ -126,7 +126,9 @@ public static class GeradorRemessa400
         {
             RegistroCnab<HeaderRemessaBradesco400>.Escrever(new HeaderRemessaBradesco400
             {
-                CodigoEmpresa = long.Parse(Digitos(remessa.CodigoBeneficiario, 20, "Código da Empresa"), CultureInfo.InvariantCulture),
+                CodigoEmpresa = long.Parse(
+                    DigitosSemDescarte(remessa.CodigoBeneficiario, 20, "Código da Empresa"),
+                    CultureInfo.InvariantCulture),
                 NomeEmpresa = remessa.Cedente.Nome,
                 DataGravacao = remessa.DataGeracao,
                 NumeroSequencialRemessa = remessa.NumeroRemessa,
@@ -296,6 +298,28 @@ public static class GeradorRemessa400
             : string.Empty;
 
     private static string Digito(string? valor) => string.IsNullOrWhiteSpace(valor) ? "0" : valor[..1];
+
+    /// <summary>
+    /// Igual a <see cref="Digitos"/>, mas rejeita qualquer caractere não
+    /// numérico em vez de descartá-lo. Usado no código da empresa Bradesco:
+    /// remover letras silenciosamente enviaria um código diferente do
+    /// informado (por exemplo "ABC12" viraria "...0012").
+    /// </summary>
+    private static string DigitosSemDescarte(string valor, int tamanho, string nome)
+    {
+        if (valor.Any(c => !char.IsAsciiDigit(c)))
+        {
+            throw new ArgumentException(
+                $"{nome} deve conter apenas dígitos; recebido '{valor}'.", nome);
+        }
+
+        if (valor.Length > tamanho)
+        {
+            throw new ArgumentException($"{nome} excede {tamanho} dígitos.", nome);
+        }
+
+        return valor.PadLeft(tamanho, '0');
+    }
 
     private static string Digitos(string valor, int tamanho, string nome)
     {

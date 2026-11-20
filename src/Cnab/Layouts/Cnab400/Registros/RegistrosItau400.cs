@@ -589,9 +589,12 @@ public sealed record DetalheRetornoItau400
     [CampoCnab("Complemento 386-392", 386, 7, TipoCampo.Filler)]
     public string Complemento386A392 { get; init; } = string.Empty;
 
-    /// <summary>Código de liquidação, posições 393-394.</summary>
-    [CampoCnab("Código de Liquidação", 393, 2, TipoCampo.Numerico)]
-    public int CodigoLiquidacao { get; init; }
+    /// <summary>
+    /// Código de liquidação, posições 393-394. O Itaú envia códigos
+    /// alfanuméricos (por exemplo "AA" e "BC"), não apenas dois dígitos.
+    /// </summary>
+    [CampoCnab("Código de Liquidação", 393, 2, TipoCampo.Alfanumerico)]
+    public string CodigoLiquidacao { get; init; } = string.Empty;
 
     /// <summary>Número sequencial do registro, posições 395-400.</summary>
     [CampoCnab("Número Sequencial do Registro", 395, 6, TipoCampo.Numerico)]

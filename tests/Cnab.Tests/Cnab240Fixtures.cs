@@ -19,6 +19,22 @@ internal static class Cnab240Fixtures
             DvConta = "6",
             DvAgenciaConta = " ",
         },
+        // Vetores oficiais para o DV do nosso número (Sicredi 4.5 / Sicoob 3.13).
+        DadosCooperativa = banco.Codigo switch
+        {
+            748 => new DadosCooperativa
+            {
+                Cooperativa = "0165",
+                Posto = "02",
+                CodigoBeneficiario = "00623",
+            },
+            756 => new DadosCooperativa
+            {
+                Cooperativa = "0001",
+                CodigoCliente = "0000000019",
+            },
+            _ => null,
+        },
     };
 
     internal static Titulo Titulo(int codigoBanco = 1) => new()

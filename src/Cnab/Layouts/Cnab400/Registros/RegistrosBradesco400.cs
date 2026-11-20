@@ -389,9 +389,15 @@ public sealed record HeaderRetornoBradesco400
     [CampoCnab("Literal Serviço", 12, 15, TipoCampo.Alfanumerico)]
     public string LiteralServico { get; init; } = Codigos400.LiteralCobranca;
 
-    /// <summary>Código da empresa, posições 27-46, numérico 9(20) com zeros à esquerda.</summary>
-    [CampoCnab("Código da Empresa", 27, 20, TipoCampo.Numerico)]
-    public long CodigoEmpresa { get; init; }
+    /// <summary>
+    /// Código da empresa, posições 27-46. No retorno o Bradesco grava o código
+    /// alinhado à esquerda, com brancos à direita (por exemplo "00623" +
+    /// 15 brancos), diferente do padrão FEBRABAN de numérico alinhado à direita
+    /// com zeros. Declarar X(20) aqui preserva a leitura de arquivos reais —
+    /// o gerador de remessa continua escrevendo o campo preenchido com zeros.
+    /// </summary>
+    [CampoCnab("Código da Empresa", 27, 20, TipoCampo.Alfanumerico)]
+    public string CodigoEmpresa { get; init; } = string.Empty;
 
     /// <summary>Nome da empresa, posições 47-76.</summary>
     [CampoCnab("Nome da Empresa", 47, 30, TipoCampo.Alfanumerico)]

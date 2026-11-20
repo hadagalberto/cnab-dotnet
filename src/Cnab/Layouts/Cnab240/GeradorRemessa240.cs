@@ -295,7 +295,7 @@ public static class GeradorRemessa240
                 Conta = ContaNoSegmentoP(remessa, perfil, conta),
                 DvConta = conta.DvConta ?? string.Empty,
                 DvAgenciaConta = conta.DvAgenciaConta ?? string.Empty,
-                NossoNumero = NossoNumeroNoSegmentoP(remessa, titulo),
+                NossoNumero = NossoNumeroNoSegmentoP(remessa, lote.Cedente, titulo),
                 Carteira = Carteira(titulo),
                 FormaCadastramento = 1,
                 TipoDocumento = "1",
@@ -531,6 +531,25 @@ public static class GeradorRemessa240
         // é convertida e tem todos os DVs conferidos; a arrecadação não tem
         // fator de vencimento, então 92-99 fica zerada (não se inventa data).
         var barras = Arrecadacao.Normalizar(pagamento.CodigoDeBarras!);
+
+        // FEBRABAN arrecadação v08, seção 05: identificador 6 ou 8 significa
+        // VALOR EFETIVO (o campo valor é o que deve ser pago). Quando o código
+        // traz valor efetivo, o valor do pagamento tem de coincidir; com 7/9
+        // o campo é uma referência e o pagamento pode ter valor próprio.
+        if (barras[2] is '6' or '8')
+        {
+            var valorCodigo = Arrecadacao.LerValor(barras);
+            var valorPagamento = decimal.Round(pagamento.Valor, 2, MidpointRounding.ToEven);
+            if (valorCodigo != valorPagamento)
+            {
+                throw new ArgumentException(
+                    $"Valor do pagamento {valorPagamento.ToString("0.00", CultureInfo.InvariantCulture)} difere do "
+                        + $"valor efetivo do código de barras de arrecadação "
+                        + $"{valorCodigo.ToString("0.00", CultureInfo.InvariantCulture)}.",
+                    nameof(pagamento));
+            }
+        }
+
         return new SegmentoO240
         {
             Banco = remessa.Banco.Codigo,
@@ -784,7 +803,7 @@ public static class GeradorRemessa240
         return longo(conta.Conta, 12, "Conta");
     }
 
-    private static string NossoNumeroNoSegmentoP(Remessa240 remessa, Titulo titulo)
+    private static string NossoNumeroNoSegmentoP(Remessa240 remessa, Cedente cedente, Titulo titulo)
     {
         if (remessa.Banco.Codigo == 104)
         {
@@ -805,9 +824,51 @@ public static class GeradorRemessa240
         {
             1 => NossoNumeroBB(remessa, nn),
             208 => Validar(nn, 11, "BTG", () => Btg.ValidarNossoNumero(nn)),
-            748 => Validar(nn, 9, "Sicredi", () => Sicredi.ValidarNossoNumero(nn)),
-            756 => Validar(nn, 8, "Sicoob", () => Sicoob.ValidarNossoNumero(nn)),
+            748 => NossoNumeroCooperativa(nn, cedente, sicredi: true),
+            756 => NossoNumeroCooperativa(nn, cedente, sicredi: false),
             _ => titulo.NossoNumero,
+        };
+    }
+
+    /// <summary>
+    /// Sicredi e Sicoob calculam o DV do nosso número sobre dados do cedente
+    /// (cooperativa/posto/beneficiário ou cooperativa/cliente), não apenas
+    /// sobre os dígitos do nosso número. Sem esses dados o DV nunca era
+    /// verificado; aqui ele é calculado quando o chamador fornece a base sem
+    /// DV e conferido quando fornece o número completo — o mesmo contrato de
+    /// <see cref="NossoNumeroBB"/> e do gerador Santander.
+    /// </summary>
+    private static string NossoNumeroCooperativa(string nn, Cedente cedente, bool sicredi)
+    {
+        var nome = sicredi ? "Sicredi" : "Sicoob";
+        var dados = cedente.DadosCooperativa ?? throw new ArgumentException(
+            $"{nome} exige DadosCooperativa no cedente para calcular/verificar o DV do nosso número.",
+            "NossoNumero");
+
+        if (sicredi)
+        {
+            return nn.Length switch
+            {
+                8 => nn + Sicredi.CalcularDvNossoNumero(
+                    dados.Cooperativa, dados.Posto, dados.CodigoBeneficiario, nn)
+                    .ToString(CultureInfo.InvariantCulture),
+                9 when Sicredi.CalcularDvNossoNumero(
+                    dados.Cooperativa, dados.Posto, dados.CodigoBeneficiario, nn[..8]) == nn[8] - '0' => nn,
+                _ => throw new ArgumentException(
+                    $"DV ou formato do nosso número {nome} inválido: esperado 8 dígitos + DV (9 no total).",
+                    "NossoNumero"),
+            };
+        }
+
+        return nn.Length switch
+        {
+            7 => nn + Sicoob.CalcularDvNossoNumero(
+                dados.Cooperativa, dados.CodigoCliente, nn).ToString(CultureInfo.InvariantCulture),
+            8 when Sicoob.CalcularDvNossoNumero(
+                dados.Cooperativa, dados.CodigoCliente, nn[..7]) == nn[7] - '0' => nn,
+            _ => throw new ArgumentException(
+                $"DV ou formato do nosso número {nome} inválido: esperado 7 dígitos + DV (8 no total).",
+                "NossoNumero"),
         };
     }
 

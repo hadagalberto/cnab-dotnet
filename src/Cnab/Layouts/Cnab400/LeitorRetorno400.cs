@@ -52,12 +52,13 @@ public static class LeitorRetorno400
     }
 
     /// <summary>
-    /// Reescreve o retorno parseado em linhas de 400 posições a partir dos
-    /// registros tipados — não devolve a linha original (isso tornaria o
-    /// round-trip circular e esconderia campos mal preenchidos).
+    /// Devolve as linhas exatamente como lidas. A reescrita dos registros
+    /// tipados normalizaria nomes para maiúsculas e preencheria com zeros os
+    /// campos numéricos em branco que os bancos realmente enviam, escondendo
+    /// o conteúdo do arquivo e criando um round-trip circular.
     /// </summary>
     /// <param name="retorno">Retorno parseado.</param>
-    /// <returns>Linhas sem delimitadores, byte-idênticas às linhas lidas quando o arquivo está correto.</returns>
+    /// <returns>Linhas sem delimitadores, byte-idênticas às linhas lidas.</returns>
     public static IReadOnlyList<string> EscreverLinhas(Retorno400 retorno)
     {
         ArgumentNullException.ThrowIfNull(retorno);
@@ -114,54 +115,54 @@ public static class LeitorRetorno400
 
     private static CabecalhoRetorno400 LerCabecalho(string linha, Banco banco) => banco.Codigo switch
     {
-        341 => CabecalhoItau(RegistroCnab<HeaderRetornoItau400>.Ler(linha, 1)),
-        237 => CabecalhoBradesco(RegistroCnab<HeaderRetornoBradesco400>.Ler(linha, 1)),
-        748 => CabecalhoSicredi(RegistroCnab<HeaderRetornoSicredi400>.Ler(linha, 1)),
+        341 => CabecalhoItau(RegistroCnab<HeaderRetornoItau400>.Ler(linha, 1), linha),
+        237 => CabecalhoBradesco(RegistroCnab<HeaderRetornoBradesco400>.Ler(linha, 1), linha),
+        748 => CabecalhoSicredi(RegistroCnab<HeaderRetornoSicredi400>.Ler(linha, 1), linha),
         77 => RegistrosInter400.LerCabecalho(linha),
         _ => throw new ArgumentException($"Banco {banco} sem leitor de retorno CNAB 400.", nameof(banco)),
     };
 
-    private static CabecalhoRetorno400 CabecalhoItau(HeaderRetornoItau400 h) => new()
+    private static CabecalhoRetorno400 CabecalhoItau(HeaderRetornoItau400 h, string linha) => new()
     {
         Banco = h.Banco,
         CodigoRemessaRetorno = h.CodigoRetorno,
         DataGeracao = h.DataGeracao,
         DataCredito = h.DataCredito,
         NumeroSequencialArquivo = h.NumeroSequencialRetorno,
-        LinhaOriginal = RegistroCnab<HeaderRetornoItau400>.Escrever(h),
+        LinhaOriginal = linha,
     };
 
-    private static CabecalhoRetorno400 CabecalhoBradesco(HeaderRetornoBradesco400 h) => new()
+    private static CabecalhoRetorno400 CabecalhoBradesco(HeaderRetornoBradesco400 h, string linha) => new()
     {
         Banco = h.Banco,
         CodigoRemessaRetorno = h.IdentificacaoRetorno,
         DataGeracao = h.DataGravacao,
         DataCredito = h.DataCredito,
         NumeroSequencialArquivo = int.Parse(h.NumeroAvisoBancario.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
-        LinhaOriginal = RegistroCnab<HeaderRetornoBradesco400>.Escrever(h),
+        LinhaOriginal = linha,
     };
 
-    private static CabecalhoRetorno400 CabecalhoSicredi(HeaderRetornoSicredi400 h) => new()
+    private static CabecalhoRetorno400 CabecalhoSicredi(HeaderRetornoSicredi400 h, string linha) => new()
     {
         Banco = h.Banco,
         CodigoRemessaRetorno = h.IdentificacaoRetorno,
         DataGeracao = DataAnsi(h.DataGravacao),
         NumeroSequencialArquivo = h.NumeroRetorno,
-        LinhaOriginal = RegistroCnab<HeaderRetornoSicredi400>.Escrever(h),
+        LinhaOriginal = linha,
     };
 
     private static ItemRetorno400 LerDetalhe(string linha, Banco banco, int numeroLinha) => banco.Codigo switch
     {
-        341 => ItemItau(RegistroCnab<DetalheRetornoItau400>.Ler(linha, numeroLinha), banco),
-        237 => ItemBradesco(RegistroCnab<DetalheRetornoBradesco400>.Ler(linha, numeroLinha), banco),
-        748 => ItemSicredi(RegistroCnab<DetalheRetornoSicredi400>.Ler(linha, numeroLinha), banco),
+        341 => ItemItau(RegistroCnab<DetalheRetornoItau400>.Ler(linha, numeroLinha), banco, linha),
+        237 => ItemBradesco(RegistroCnab<DetalheRetornoBradesco400>.Ler(linha, numeroLinha), banco, linha),
+        748 => ItemSicredi(RegistroCnab<DetalheRetornoSicredi400>.Ler(linha, numeroLinha), banco, linha),
         77 => RegistrosInter400.LerDetalhe(linha, banco, numeroLinha),
         _ => throw new ArgumentException($"Banco {banco} sem leitor de detalhe CNAB 400.", nameof(banco)),
     };
 
-    private static ItemRetorno400 ItemItau(DetalheRetornoItau400 d, Banco banco) => new()
+    private static ItemRetorno400 ItemItau(DetalheRetornoItau400 d, Banco banco, string linha) => new()
     {
-        LinhaOriginal = RegistroCnab<DetalheRetornoItau400>.Escrever(d),
+        LinhaOriginal = linha,
         TipoRegistro = d.IdentificacaoRegistro,
         Sequencial = d.NumeroSequencial,
         NossoNumero = d.NossoNumero.Trim(),
@@ -184,9 +185,9 @@ public static class LeitorRetorno400
         },
     };
 
-    private static ItemRetorno400 ItemBradesco(DetalheRetornoBradesco400 d, Banco banco) => new()
+    private static ItemRetorno400 ItemBradesco(DetalheRetornoBradesco400 d, Banco banco, string linha) => new()
     {
-        LinhaOriginal = RegistroCnab<DetalheRetornoBradesco400>.Escrever(d),
+        LinhaOriginal = linha,
         TipoRegistro = d.IdentificacaoRegistro,
         Sequencial = d.NumeroSequencial,
         NossoNumero = d.NossoNumero.Trim(),
@@ -209,9 +210,9 @@ public static class LeitorRetorno400
         },
     };
 
-    private static ItemRetorno400 ItemSicredi(DetalheRetornoSicredi400 d, Banco banco) => new()
+    private static ItemRetorno400 ItemSicredi(DetalheRetornoSicredi400 d, Banco banco, string linha) => new()
     {
-        LinhaOriginal = RegistroCnab<DetalheRetornoSicredi400>.Escrever(d),
+        LinhaOriginal = linha,
         TipoRegistro = d.IdentificacaoRegistro,
         Sequencial = d.NumeroSequencial,
         NossoNumero = d.NossoNumero.Trim(),
@@ -243,36 +244,36 @@ public static class LeitorRetorno400
 
         return banco.Codigo switch
         {
-            341 => TrailerItau(RegistroCnab<TrailerRetornoItau400>.Ler(linha)),
-            237 => TrailerBradesco(RegistroCnab<TrailerRetornoBradesco400>.Ler(linha)),
-            748 => TrailerSicredi(RegistroCnab<TrailerRetornoSicredi400>.Ler(linha)),
+            341 => TrailerItau(RegistroCnab<TrailerRetornoItau400>.Ler(linha), linha),
+            237 => TrailerBradesco(RegistroCnab<TrailerRetornoBradesco400>.Ler(linha), linha),
+            748 => TrailerSicredi(RegistroCnab<TrailerRetornoSicredi400>.Ler(linha), linha),
             77 => RegistrosInter400.LerTrailer(linha),
             _ => throw new ArgumentException($"Banco {banco} sem leitor de trailer CNAB 400.", nameof(banco)),
         };
     }
 
-    private static TrailerRetorno400 TrailerItau(TrailerRetornoItau400 t) => new()
+    private static TrailerRetorno400 TrailerItau(TrailerRetornoItau400 t, string linha) => new()
     {
         TipoRegistro = t.IdentificacaoRegistro,
         CodigoRemessaRetorno = t.CodigoRetorno,
         NumeroSequencialArquivo = t.NumeroSequencial,
-        LinhaOriginal = RegistroCnab<TrailerRetornoItau400>.Escrever(t),
+        LinhaOriginal = linha,
     };
 
-    private static TrailerRetorno400 TrailerBradesco(TrailerRetornoBradesco400 t) => new()
+    private static TrailerRetorno400 TrailerBradesco(TrailerRetornoBradesco400 t, string linha) => new()
     {
         TipoRegistro = t.IdentificacaoRegistro,
         CodigoRemessaRetorno = t.IdentificacaoRetorno,
         NumeroSequencialArquivo = t.NumeroSequencial,
-        LinhaOriginal = RegistroCnab<TrailerRetornoBradesco400>.Escrever(t),
+        LinhaOriginal = linha,
     };
 
-    private static TrailerRetorno400 TrailerSicredi(TrailerRetornoSicredi400 t) => new()
+    private static TrailerRetorno400 TrailerSicredi(TrailerRetornoSicredi400 t, string linha) => new()
     {
         TipoRegistro = t.IdentificacaoRegistro,
         CodigoRemessaRetorno = t.IdentificacaoRetorno,
         NumeroSequencialArquivo = t.NumeroSequencial,
-        LinhaOriginal = RegistroCnab<TrailerRetornoSicredi400>.Escrever(t),
+        LinhaOriginal = linha,
     };
 
     private static IReadOnlyList<OcorrenciaRetorno> InterpretarMotivos(string conteudo, Banco banco)

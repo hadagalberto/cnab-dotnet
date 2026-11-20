@@ -11,7 +11,9 @@ using Cnab.Digitos;
 /// DVs usam módulo 10 (6/7) ou módulo 11 (8/9), a 4ª é o DV geral e as
 /// posições 5-15 trazem o valor (11 dígitos, sem decimais implícitos).
 /// <para>A representação numérica tem 48 dígitos: quatro blocos de 11
-/// posições do código de barras, cada um seguido de um DV módulo 10.</para>
+/// posições do código de barras, cada um seguido de um DV calculado pelo mesmo
+/// algoritmo do DV geral (módulo 10 para 6/7, módulo 11 para 8/9 — FEBRABAN
+/// v08, seção 05).</para>
 /// </summary>
 public static class Arrecadacao
 {
@@ -115,11 +117,14 @@ public static class Arrecadacao
     }
 
     /// <summary>
-    /// Valor da arrecadação (posições 5-15 do código de barras, 11 dígitos).
-    /// Diferente da cobrança, não há centavos implícitos.
+    /// Valor da arrecadação (posições 5-15 do código de barras, 11 dígitos em
+    /// centavos). Manual FEBRABAN v08, seção 05: com identificador 6 ou 8 o
+    /// campo traz o "valor a ser cobrado efetivamente em reais"; as 11 posições
+    /// são centavos implícitos, como no campo valor da cobrança. Com 7 ou 9 o
+    /// campo é uma quantidade/valor de referência e não deve ser cobrado.
     /// </summary>
     /// <param name="barras">Código de barras validado com 44 dígitos.</param>
-    /// <returns>Valor monetário.</returns>
+    /// <returns>Valor monetário em reais (centavos / 100).</returns>
     /// <exception cref="ArgumentException">Formato inválido.</exception>
     public static decimal LerValor(string barras)
     {
@@ -128,17 +133,25 @@ public static class Arrecadacao
             throw new ArgumentException("Código de barras deve ter 44 dígitos.", nameof(barras));
         }
 
-        return long.Parse(barras.Substring(4, 11), CultureInfo.InvariantCulture);
+        return long.Parse(barras.Substring(4, 11), CultureInfo.InvariantCulture) / 100m;
     }
 
     private static string DeLinhaParaBarras(string digitos)
     {
         var barras = digitos[..11] + digitos.Substring(12, 11)
             + digitos.Substring(24, 11) + digitos.Substring(36, 11);
+        var identificador = digitos[2];
         for (var bloco = 0; bloco < 4; bloco++)
         {
             var inicio = bloco * 12;
-            var esperado = Modulo.Modulo10([.. digitos.Substring(inicio, 11)]);
+            var baseBloco = digitos.Substring(inicio, 11);
+            var esperado = identificador switch
+            {
+                '6' or '7' => Modulo.Modulo10([.. baseBloco]),
+                '8' or '9' => CalcularDvModulo11(baseBloco),
+                _ => throw new ArgumentException(
+                    "3ª posição da arrecadação deve ser 6, 7, 8 ou 9.", nameof(digitos)),
+            };
             if (digitos[inicio + 11] - '0' != esperado)
             {
                 throw new ArgumentException(

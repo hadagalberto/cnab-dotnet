@@ -1,5 +1,6 @@
 namespace Cnab.Tests;
 
+using System.Globalization;
 using Cnab.Arquivo;
 using Cnab.Layouts.Cnab240;
 using Cnab.Layouts.Cnab240.Registros;
@@ -42,36 +43,33 @@ public class Cnab240RetornoBancosAdicionaisTests
             .Por(192, "20092026")
             .Por(200, "00000000") // DataCredito opcional zerada na remessa/retorno
             .ToString();
-        var t = RegistroCnab<SegmentoT240>.Escrever(new SegmentoT240
-        {
-            Banco = codigoBanco,
-            Lote = 1,
-            TipoRegistro = 3,
-            Sequencial = 1,
-            CodigoMovimento = ocorrencia,
-            NossoNumero = "00000000000000012345",
-            NumeroDocumento = "NF000001",
-            Valor = 1500.50m,
-            ValorTarifa = 2.50m,
-            MotivoOcorrencia = motivos,
-        });
-        var u = RegistroCnab<SegmentoU240>.Escrever(new SegmentoU240
-        {
-            Banco = codigoBanco,
-            Lote = 1,
-            TipoRegistro = 3,
-            Sequencial = 2,
-            CodigoMovimento = ocorrencia,
-            JurosMultaEncargos = 1.25m,
-            ValorDesconto = 0.75m,
-            ValorAbatimento = 0m,
-            ValorIof = 0.10m,
-            ValorPago = 1500.50m,
-            ValorLiquido = 1498.40m,
-            DataOcorrencia = new DateOnly(2026, 11, 20),
-            DataCredito = new DateOnly(2026, 11, 21),
-            CodigoOcorrenciaPagador = "0101",
-        });
+        // Linhas literais de 240 posições escritas à mão conforme o layout
+        // FEBRABAN V10.9 dos segmentos T (3.2.1) e U (3.2.2). Usar o escritor
+        // da biblioteca para montar o oracle tornaria o teste circular: ele
+        // passaria mesmo que o leitor e o escritor estivessem errados.
+        // Posições não preenchidas ficam em branco e são lidas como 0/ausente.
+        var t = Milestone3Fixtures.NovaLinha240()
+            .Por(1, codigoBanco.ToString("000", CultureInfo.InvariantCulture))
+            .Por(4, "0001").Por(8, "3").Por(9, "00001").Por(14, "T")
+            .Por(16, ocorrencia.ToString("00", CultureInfo.InvariantCulture))
+            .Por(38, "00000000000000012345")
+            .Por(59, "NF000001")
+            .Por(82, "000000000150050")
+            .Por(199, "000000000000250")
+            .Por(214, motivos)
+            .ToString();
+        var u = Milestone3Fixtures.NovaLinha240()
+            .Por(1, codigoBanco.ToString("000", CultureInfo.InvariantCulture))
+            .Por(4, "0001").Por(8, "3").Por(9, "00002").Por(14, "U")
+            .Por(16, ocorrencia.ToString("00", CultureInfo.InvariantCulture))
+            .Por(18, "000000000000125")
+            .Por(33, "000000000000075")
+            .Por(63, "000000000000010")
+            .Por(78, "000000000150050")
+            .Por(93, "000000000149840")
+            .Por(138, "20112026").Por(146, "21112026")
+            .Por(154, "0101")
+            .ToString();
         var trailerLote = RegistroCnab<TrailerLoteCobranca240>.Escrever(new TrailerLoteCobranca240
         {
             Banco = codigoBanco,

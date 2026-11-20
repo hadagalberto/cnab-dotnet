@@ -50,6 +50,23 @@ internal static class Milestone3Fixtures
             DvConta = "7",
             DvAgenciaConta = "0",
         },
+        // Vetores oficiais dos manuais Sicredi (itens 4.5/10.4) e Sicoob
+        // (item 3.13), usados por NossoNumero240 abaixo.
+        DadosCooperativa = banco.Codigo switch
+        {
+            748 => new DadosCooperativa
+            {
+                Cooperativa = "0165",
+                Posto = "02",
+                CodigoBeneficiario = "00623",
+            },
+            756 => new DadosCooperativa
+            {
+                Cooperativa = "0001",
+                CodigoCliente = "0000000019",
+            },
+            _ => null,
+        },
     };
 
     internal static Titulo Titulo(string nossoNumero, string carteira) => new()

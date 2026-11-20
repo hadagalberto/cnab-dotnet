@@ -88,13 +88,16 @@ public class ReviewFindingsTests
     public void Finding3_LinhaDeArrecadacao48Digitos_GeraSegmentoO()
     {
         // Montagem independente da linha de 48 dígitos: quatro blocos de 11
-        // posições do código de barras oficial, cada um com DV módulo 10
-        // calculado pela regra da seção 07 do manual FEBRABAN de arrecadação.
+        // posições do código de barras oficial, cada um com DV módulo 11 —
+        // a 3ª posição deste vetor é "8" (valor efetivo com DV módulo 11),
+        // portanto todos os DVs, inclusive os de bloco, usam módulo 11
+        // (FEBRABAN v08, seções 05 e 10). O auxiliar módulo 10 usado aqui
+        // antes codificava o bug corrigido na re-verificação de 2026-11-20.
         var linha =
-            BlocoComDv(ArrecadacaoBarras[..11])
-            + BlocoComDv(ArrecadacaoBarras.Substring(11, 11))
-            + BlocoComDv(ArrecadacaoBarras.Substring(22, 11))
-            + BlocoComDv(ArrecadacaoBarras.Substring(33, 11));
+            BlocoComDvMod11(ArrecadacaoBarras[..11])
+            + BlocoComDvMod11(ArrecadacaoBarras.Substring(11, 11))
+            + BlocoComDvMod11(ArrecadacaoBarras.Substring(22, 11))
+            + BlocoComDvMod11(ArrecadacaoBarras.Substring(33, 11));
         Assert.Equal(48, linha.Length);
 
         var cedente = Milestone3Fixtures.Cedente(Bancos.BancoDoBrasil);
@@ -244,11 +247,14 @@ public class ReviewFindingsTests
     }
 
     [Fact]
-    public void Finding9_Retorno400_EscreverLinhas_ReserializaRegistrosTipados()
+    public void Finding9_Retorno400_EscreverLinhas_PreservaLinhaOriginal()
     {
         // Linha escrita à mão (não pelo gerador da biblioteca): nome da empresa
-        // em minúsculas. O leitor normaliza para maiúsculas; a reescrita deve
-        // usar o registro tipado — não devolver a LinhaOriginal.
+        // em minúsculas. A asserção original desta revisão esperava a reescrita
+        // tipada em maiúsculas — isso codificava o bug corrigido na
+        // re-verificação de 2026-11-20 (item 5): LinhaOriginal deve ser
+        // devolvida exatamente como lida. Corrigido com comentário citando a
+        // origem da mudança.
         var linha =
             Milestone3Fixtures.NovaLinha400()
                 .Por(1, "0").Por(2, "2").Por(3, "RETORNO")
@@ -271,7 +277,7 @@ public class ReviewFindingsTests
 
         var retorno = LeitorRetorno400.Ler(conteudo, Bancos.Itau);
         var reescrito = LeitorRetorno400.EscreverLinhas(retorno);
-        Assert.Equal("EMPRESA TESTE LTDA", reescrito[0].Substring(46, 30).TrimEnd());
+        Assert.Equal(linha, reescrito[0]);
     }
 
     [Fact]
@@ -291,8 +297,12 @@ public class ReviewFindingsTests
     }
 
     [Fact]
-    public void Finding9_Retorno240_EscreverLinhasReserializaRegistrosTipados()
+    public void Finding9_Retorno240_EscreverLinhas_PreservaLinhaOriginal()
     {
+        // A asserção original esperava "EMPRESA TESTE LTDA" (normalizado pelo
+        // escritor tipado). Re-verificação de 2026-11-20, item 5: a linha deve
+        // voltar exatamente como foi lida, inclusive minúsculas e numéricos
+        // em branco. Valor corrigido abaixo, com a origem da mudança citada.
         var header =
             Milestone3Fixtures.NovaLinha240()
                 .Por(1, "001").Por(8, "0")
@@ -318,7 +328,7 @@ public class ReviewFindingsTests
         var retorno = LeitorRetorno240.Ler(
             EscritorDeArquivo.Montar([header, headerLote, trailerLote, trailerArquivo]), Bancos.BancoDoBrasil);
         var reescrito = LeitorRetorno240.EscreverLinhas(retorno);
-        Assert.Equal("EMPRESA TESTE LTDA", reescrito[0].Substring(72, 30).TrimEnd());
+        Assert.Equal(header, reescrito[0]);
     }
 
     [Fact]
@@ -344,6 +354,22 @@ public class ReviewFindingsTests
         }
 
         var dv = (10 - (soma % 10)) % 10;
+        return bloco + dv.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Módulo 11 independente, seção 09 do manual FEBRABAN de arrecadação.</summary>
+    private static string BlocoComDvMod11(string bloco)
+    {
+        var soma = 0;
+        var peso = 2;
+        for (var i = bloco.Length - 1; i >= 0; i--)
+        {
+            soma += (bloco[i] - '0') * peso;
+            peso = peso == 9 ? 2 : peso + 1;
+        }
+
+        var resto = soma % 11;
+        var dv = resto is 0 or 1 ? 0 : resto == 10 ? 1 : 11 - resto;
         return bloco + dv.ToString(CultureInfo.InvariantCulture);
     }
 }

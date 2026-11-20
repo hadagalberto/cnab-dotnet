@@ -7,6 +7,24 @@ e o projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+### Corrigido (re-verificação independente 2026-11-20)
+
+- Arrecadação: DVs dos blocos da linha de 48 dígitos passam a usar módulo 10
+  (identificador 6/7) ou módulo 11 (8/9), como o DV geral; `LerValor` converte
+  os 11 dígitos de centavos em reais; segmento O confere o valor efetivo do
+  código de barras com `Pagamento.Valor`.
+- Sicredi/Sicoob: dados da cooperativa do cedente são passados ao gerador,
+  que calcula ou verifica o DV do nosso número; DV errado é rejeitado.
+- Retorno 240/400: `LinhaOriginal` preserva a linha lida byte a byte (nome com
+  caixa original e campos numéricos em branco). Fixtures e goldens 400
+  restaurados para saída realista de banco; código da empresa do Bradesco no
+  retorno passa a X(20) para aceitar alinhamento à esquerda com brancos.
+- Golden `001_cobranca_240.ret`: segmentos T/U reconstruídos campo a campo
+  conforme FEBRABAN V10.9, com valores realistas; teste afirma todas as posições.
+- Itaú 400: código de liquidação (393-394) passa a alfanumérico (`AA`, `BC`).
+- Bradesco 400: código da empresa com caracteres não numéricos é rejeitado.
+  Detalhes em `docs/REVIEW-FIXES.md`.
+
 ### Corrigido (revisão independente 2026-11-20)
 
 - G057 no trailer de lote de cobrança 240 (posições 18-23) e comentário
